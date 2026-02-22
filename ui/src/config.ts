@@ -1,0 +1,25 @@
+export const API_BASE_URL = 'http://localhost:5001';
+
+import toast from 'react-hot-toast';
+
+export const authFetch = async (url: string, options: RequestInit = {}) => {
+    const token = localStorage.getItem('token');
+    const headers = {
+        ...options.headers,
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+
+    const res = await fetch(url, { ...options, headers });
+
+    if (res.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+    }
+
+    if (res.status >= 500) {
+        toast.error('Server error. Please try again later.');
+    }
+
+    return res;
+};

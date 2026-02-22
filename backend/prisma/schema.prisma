@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  mobile    String    @unique
+  password  String
+  guests    Guest[]
+  rooms     Room[]
+  finances  Finance[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Guest {
+  id                Int         @id @default(autoincrement())
+  name              String
+  mobile            String
+  gender            String      // "Male", "Female", "Other"
+  
+  userId            Int
+  user              User        @relation(fields: [userId], references: [id])
+
+  roomId            Int?
+  room              Room?       @relation(fields: [roomId], references: [id])
+  travelPlanId      Int?
+  travelPlan        TravelPlan? @relation(fields: [travelPlanId], references: [id])
+  
+  // Explicit travel details
+  arrivalTime       DateTime?
+  arrivalFlightNo   String?
+  arrivalPnr        String?
+  
+  departureTime     DateTime?
+  departureFlightNo String?
+  departurePnr      String?
+  isNotified        Boolean     @default(false)
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model Room {
+  id          Int      @id @default(autoincrement())
+  name        String
+  capacity    Int
+  hasExtraBed Boolean  @default(false)
+  
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+
+  guests      Guest[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TravelPlan {
+  id              Int      @id @default(autoincrement())
+  arrivalDate     DateTime?
+  departureDate   DateTime?
+  modeOfTransport String?
+  guests          Guest[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Finance {
+  id          Int      @id @default(autoincrement())
+  category    String
+  amount      Float
+  description String?
+  
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
