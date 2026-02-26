@@ -25,6 +25,7 @@ interface Guest {
     mobile: string;
     gender: string;
     roomId?: number;
+    isTentative: boolean;
 }
 
 interface RoomType {
@@ -57,7 +58,7 @@ function SortableGuest({ id, guest, onRemove, disabled, compact }: { id: string,
             style={style}
             {...attributes}
             {...listeners}
-            className={`group relative ${compact ? 'p-2' : 'p-3'} rounded-lg border shadow-sm transition-all ${disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing hover:border-brand-300 hover:shadow-md'} ${currentGenderClass}`}
+            className={`group relative mb-2 ${compact ? 'p-3' : 'p-4'} rounded-lg border shadow-sm transition-all bg-white ${disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing hover:border-brand-400 hover:shadow-md'} ${currentGenderClass}`}
         >
             <div className={compact ? 'pr-4' : 'pr-6'}>
                 <p className={`font-medium ${compact ? 'text-xs' : 'text-sm'} text-gray-900 leading-tight`}>{guest.name}</p>
@@ -169,7 +170,8 @@ export default function Rooms() {
             ]);
 
             setRooms(roomsRes);
-            setUnassignedGuests(guestsRes.filter((g: Guest) => !g.roomId));
+            // Hide tentative guests from the room assignment list completely
+            setUnassignedGuests(guestsRes.filter((g: Guest) => !g.roomId && !g.isTentative));
         } catch (err) {
             console.error(err);
         } finally {

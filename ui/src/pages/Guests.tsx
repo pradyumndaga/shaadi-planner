@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { UploadCloud, Plus, Search, Trash2, Edit, X, FileDown } from 'lucide-react';
+import { UploadCloud, Plus, Search, Trash2, Edit, X, FileDown, UserCheck, UserMinus, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { API_BASE_URL, authFetch } from '../config';
 
@@ -15,6 +15,7 @@ interface Guest {
     departureFlightNo?: string;
     departurePnr?: string;
     isNotified: boolean;
+    isTentative: boolean;
     roomId?: number | null;
     room?: {
         name: string;
@@ -23,10 +24,12 @@ interface Guest {
 
 export default function Guests() {
     const [guests, setGuests] = useState<Guest[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [attendanceFilter, setAttendanceFilter] = useState('All'); // 'All', 'Tentative', 'Confirmed'
+    const [roomFilter, setRoomFilter] = useState('All'); // 'All', or room name
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const fileInputRef = useRef(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchGuests = () => {
         setLoading(true);
@@ -127,7 +130,24 @@ export default function Guests() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
-    const [formData, setFormData] = useState({
+    const [linkedArrivals, setLinkedArrivals] = useState<number[]>([]);
+    const [linkedDepartures, setLinkedDepartures] = useState<number[]>([]);
+    const [arrivalSearch, setArrivalSearch] = useState('');
+    const [departureSearch, setDepartureSearch] = useState('');
+    const [showArrivalOptions, setShowArrivalOptions] = useState(false);
+    const [showDepartureOptions, setShowDepartureOptions] = useState(false);
+    const [formData, setFormData] = useState<{
+        name: string;
+        mobile: string;
+        gender: string;
+        arrivalTime: string;
+        arrivalFlightNo: string;
+        arrivalPnr: string;
+        departureTime: string;
+        departureFlightNo: string;
+        departurePnr: string;
+        isTentative: boolean;
+    }>({
         name: '',
         mobile: '',
         gender: 'Other',
@@ -136,11 +156,16 @@ export default function Guests() {
         arrivalPnr: '',
         departureTime: '',
         departureFlightNo: '',
-        departurePnr: ''
+        departurePnr: '',
+        isTentative: false
     });
 
     const openCreateModal = () => {
         setEditingGuest(null);
+        setLinkedArrivals([]);
+        setLinkedDepartures([]);
+        setArrivalSearch('');
+        setDepartureSearch('');
         setFormData({
             name: '',
             mobile: '',
@@ -150,13 +175,18 @@ export default function Guests() {
             arrivalPnr: '',
             departureTime: '',
             departureFlightNo: '',
-            departurePnr: ''
+            departurePnr: '',
+            isTentative: false
         });
         setIsModalOpen(true);
     };
 
     const openEditModal = (guest: Guest) => {
         setEditingGuest(guest);
+        setLinkedArrivals([]);
+        setLinkedDepartures([]);
+        setArrivalSearch('');
+        setDepartureSearch('');
         setFormData({
             name: guest.name,
             mobile: guest.mobile,
@@ -166,25 +196,31 @@ export default function Guests() {
             arrivalPnr: guest.arrivalPnr || '',
             departureTime: guest.departureTime ? new Date(guest.departureTime).toISOString().slice(0, 16) : '',
             departureFlightNo: guest.departureFlightNo || '',
-            departurePnr: guest.departurePnr || ''
+            departurePnr: guest.departurePnr || '',
+            isTentative: guest.isTentative || false
         });
         setIsModalOpen(true);
     };
 
     const saveGuest = async (e: React.FormEvent) => {
         e.preventDefault();
+        const payload = {
+            ...formData,
+            linkedArrivalGuestIds: linkedArrivals,
+            linkedDepartureGuestIds: linkedDepartures
+        };
         try {
             if (editingGuest) {
                 await authFetch(`${API_BASE_URL}/api/guests/${editingGuest.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(payload)
                 });
             } else {
                 await authFetch(`${API_BASE_URL}/api/guests`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(payload)
                 });
             }
             setIsModalOpen(false);
@@ -196,7 +232,48 @@ export default function Guests() {
         }
     };
 
-    const filteredGuests = guests.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const toggleTentativeStatus = async (guest: Guest) => {
+        // Optimistic UI update
+        const previousGuests = [...guests];
+        setGuests(guests.map(g => g.id === guest.id ? { ...g, isTentative: !g.isTentative } : g));
+
+        try {
+            await authFetch(`${API_BASE_URL}/api/guests/${guest.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isTentative: !guest.isTentative })
+            });
+            toast.success(`${guest.name} marked as ${!guest.isTentative ? 'Tentative' : 'Visiting'}`);
+            // No need to fetchGuests(), we already updated locally
+        } catch (err) {
+            console.error(err);
+            // Revert on failure
+            setGuests(previousGuests);
+            toast.error('Failed to update status');
+        }
+    };
+
+    const uniqueRooms = Array.from(new Set(guests.map(g => g.room?.name).filter(Boolean))).sort() as string[];
+
+    const filteredGuests = guests.filter(g => {
+        const matchesSearch = g.name.toLowerCase().includes(searchTerm.toLowerCase()) || g.mobile.includes(searchTerm);
+
+        let matchesAttendance = true;
+        if (attendanceFilter === 'Visiting') matchesAttendance = !g.isTentative;
+        else if (attendanceFilter === 'Tentative') matchesAttendance = g.isTentative;
+
+        let matchesRoom = true;
+        if (roomFilter === 'Unassigned') matchesRoom = !g.room;
+        else if (roomFilter === 'Assigned') matchesRoom = !!g.room;
+        else if (roomFilter !== 'All') matchesRoom = g.room?.name === roomFilter;
+
+        return matchesSearch && matchesAttendance && matchesRoom;
+    });
+
+    // Calculate metrics
+    const totalGuestsCount = guests.length;
+    const tentativeGuestsCount = guests.filter(g => g.isTentative).length;
+    const visitingGuestsCount = totalGuestsCount - tentativeGuestsCount;
 
     return (
         <div className="animate-fade-in">
@@ -223,7 +300,7 @@ export default function Guests() {
                     </button>
 
                     <button
-                        onClick={() => window.open(`${API_BASE_URL}/api/guests/export/all/pdf?token=${localStorage.getItem('token')}`, '_blank')}
+                        onClick={() => window.open(`${API_BASE_URL}/api/guests/export/all/pdf?token=${localStorage.getItem('token')}&attendance=${attendanceFilter}`, '_blank')}
                         className="btn-secondary flex items-center gap-2"
                     >
                         <FileDown size={18} />
@@ -246,18 +323,76 @@ export default function Guests() {
                 </div>
             </header>
 
-            <div className="card">
-                <div className="mb-6 relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-gray-400" />
+            {/* Metrics Summary & Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div
+                    onClick={() => setAttendanceFilter('All')}
+                    className={`rounded-xl shadow-sm border p-4 flex items-center gap-4 cursor-pointer transition-all ${attendanceFilter === 'All' ? 'border-brand-500 ring-1 ring-brand-500 bg-brand-50' : 'bg-white border-brand-100 hover:border-brand-300 hover:shadow-md opacity-80 hover:opacity-100'}`}
+                >
+                    <div className={`p-3 rounded-lg ${attendanceFilter === 'All' ? 'bg-white text-brand-600 shadow-sm' : 'bg-brand-50 text-brand-600'}`}>
+                        <Users size={20} />
                     </div>
-                    <input
-                        type="text"
-                        className="input-field pl-10"
-                        placeholder="Search guests..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                    <div>
+                        <p className={`text-sm font-medium ${attendanceFilter === 'All' ? 'text-brand-800' : 'text-gray-500'}`}>Total Guests</p>
+                        <p className={`text-2xl font-bold ${attendanceFilter === 'All' ? 'text-brand-900' : 'text-gray-900'}`}>{totalGuestsCount}</p>
+                    </div>
+                </div>
+                <div
+                    onClick={() => setAttendanceFilter('Visiting')}
+                    className={`rounded-xl shadow-sm border p-4 flex items-center gap-4 cursor-pointer transition-all ${attendanceFilter === 'Visiting' ? 'border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50' : 'bg-white border-emerald-100 hover:border-emerald-300 hover:shadow-md opacity-80 hover:opacity-100'}`}
+                >
+                    <div className={`p-3 rounded-lg ${attendanceFilter === 'Visiting' ? 'bg-white text-emerald-600 shadow-sm' : 'bg-emerald-50 text-emerald-600'}`}>
+                        <UserCheck size={20} />
+                    </div>
+                    <div>
+                        <p className={`text-sm font-medium ${attendanceFilter === 'Visiting' ? 'text-emerald-800' : 'text-gray-500'}`}>Visiting</p>
+                        <p className={`text-2xl font-bold ${attendanceFilter === 'Visiting' ? 'text-emerald-900' : 'text-gray-900'}`}>{visitingGuestsCount}</p>
+                    </div>
+                </div>
+                <div
+                    onClick={() => setAttendanceFilter('Tentative')}
+                    className={`rounded-xl shadow-sm border p-4 flex items-center gap-4 cursor-pointer transition-all ${attendanceFilter === 'Tentative' ? 'border-orange-500 ring-1 ring-orange-500 bg-orange-50' : 'bg-white border-orange-100 hover:border-orange-300 hover:shadow-md opacity-80 hover:opacity-100'}`}
+                >
+                    <div className={`p-3 rounded-lg ${attendanceFilter === 'Tentative' ? 'bg-white text-orange-600 shadow-sm' : 'bg-orange-50 text-orange-600'}`}>
+                        <UserMinus size={20} />
+                    </div>
+                    <div>
+                        <p className={`text-sm font-medium ${attendanceFilter === 'Tentative' ? 'text-orange-800' : 'text-gray-500'}`}>Tentative</p>
+                        <p className={`text-2xl font-bold ${attendanceFilter === 'Tentative' ? 'text-orange-900' : 'text-gray-900'}`}>{tentativeGuestsCount}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="card">
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                    <div className="relative flex-1">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            className="input-field pl-10"
+                            placeholder="Search guests by name or mobile..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex gap-4 sm:w-auto w-full">
+                        <select
+                            className="input-field shadow-sm bg-white min-w-[160px]"
+                            value={roomFilter}
+                            onChange={(e) => setRoomFilter(e.target.value)}
+                        >
+                            <option value="All">Room: All</option>
+                            <option value="Assigned">Assigned (Any Room)</option>
+                            <option value="Unassigned">Unassigned</option>
+                            <optgroup label="Specific Rooms">
+                                {uniqueRooms.map(room => (
+                                    <option key={room} value={room}>{room}</option>
+                                ))}
+                            </optgroup>
+                        </select>
+                    </div>
                 </div>
 
                 {loading ? (
@@ -278,13 +413,17 @@ export default function Guests() {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Name</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Mobile</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Gender</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Attendance</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Room Status</th>
                                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredGuests.map(guest => (
-                                    <tr key={guest.id} className={`hover:bg-gray-50 transition-colors ${selectedIds.has(guest.id) ? 'bg-brand-50/30' : ''}`}>
+                                    <tr
+                                        key={guest.id}
+                                        className={`transition-colors ${selectedIds.has(guest.id) ? 'bg-brand-50/50' : (guest.isTentative ? 'bg-orange-50/40 hover:bg-orange-50/70' : 'hover:bg-gray-50')}`}
+                                    >
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <input
                                                 type="checkbox"
@@ -303,6 +442,21 @@ export default function Guests() {
                                                 {guest.gender}
                                             </span>
                                         </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <button
+                                                onClick={() => toggleTentativeStatus(guest)}
+                                                className={`px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 flex items-center gap-1 ${guest.isTentative
+                                                    ? 'bg-orange-100 border border-orange-300 text-orange-700 hover:bg-orange-200 focus:ring-orange-500'
+                                                    : 'bg-emerald-100 border border-emerald-300 text-emerald-700 hover:bg-emerald-200 focus:ring-emerald-500'
+                                                    }`}
+                                            >
+                                                {guest.isTentative ? (
+                                                    <><UserMinus size={14} /> Tentative</>
+                                                ) : (
+                                                    <><UserCheck size={14} /> Visiting</>
+                                                )}
+                                            </button>
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {guest.room ? (
                                                 <span className="text-brand-600 font-medium">{guest.room.name}</span>
@@ -318,7 +472,7 @@ export default function Guests() {
                                 ))}
                                 {filteredGuests.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-8 text-center text-gray-500">No data to display</td>
+                                        <td colSpan={7} className="px-6 py-8 text-center text-gray-500">No data to display</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -331,7 +485,7 @@ export default function Guests() {
             {
                 isModalOpen && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in">
+                        <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-fade-in">
                             <div className="flex justify-between items-center p-6 border-b border-gray-100">
                                 <h2 className="text-xl font-semibold text-gray-900">
                                     {editingGuest ? 'Edit Guest' : 'Add Guest'}
@@ -376,6 +530,18 @@ export default function Guests() {
                                             </select>
                                         </div>
                                     </div>
+                                    <div className="flex items-center mt-4">
+                                        <input
+                                            type="checkbox"
+                                            id="isTentative"
+                                            className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded"
+                                            checked={formData.isTentative}
+                                            onChange={e => setFormData({ ...formData, isTentative: e.target.checked })}
+                                        />
+                                        <label htmlFor="isTentative" className="ml-2 block text-sm text-gray-900">
+                                            Mark as Tentative (Might not attend)
+                                        </label>
+                                    </div>
 
                                     <hr className="my-4 border-gray-100" />
                                     <h3 className="font-medium text-base text-gray-900 mb-2">Travel - Arrival</h3>
@@ -388,6 +554,7 @@ export default function Guests() {
                                                 value={formData.arrivalTime}
                                                 onChange={e => setFormData({ ...formData, arrivalTime: e.target.value })}
                                             />
+                                            <p className="text-[11px] text-gray-500 mt-1.5 italic font-medium tracking-tight">Saved automatically — tap outside to close</p>
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Arrival Flight/Train No.</label>
@@ -411,6 +578,60 @@ export default function Guests() {
                                         </div>
                                     </div>
 
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Apply Arrival details to other guests:</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                placeholder="Search and select guests..."
+                                                className="input-field mb-2"
+                                                value={arrivalSearch}
+                                                onChange={e => setArrivalSearch(e.target.value)}
+                                                onFocus={() => setShowArrivalOptions(true)}
+                                                onBlur={() => setTimeout(() => setShowArrivalOptions(false), 200)}
+                                            />
+                                            {showArrivalOptions && (
+                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto top-[42px]">
+                                                    {guests
+                                                        .filter(g => !g.isTentative && g.id !== editingGuest?.id && !linkedArrivals.includes(g.id))
+                                                        .filter(g => g.name.toLowerCase().includes(arrivalSearch.toLowerCase()))
+                                                        .slice(0, 50)
+                                                        .map(g => (
+                                                            <div
+                                                                key={g.id}
+                                                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                                                onMouseDown={(e) => {
+                                                                    e.preventDefault();
+                                                                    setLinkedArrivals([...linkedArrivals, g.id]);
+                                                                    setArrivalSearch('');
+                                                                }}
+                                                            >
+                                                                {g.name}
+                                                            </div>
+                                                        ))}
+                                                    {guests.filter(g => !g.isTentative && g.id !== editingGuest?.id && !linkedArrivals.includes(g.id)).filter(g => g.name.toLowerCase().includes(arrivalSearch.toLowerCase())).length === 0 && (
+                                                        <div className="px-4 py-2 text-gray-500 text-sm">No guests found</div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {linkedArrivals.length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {linkedArrivals.map(id => {
+                                                    const g = guests.find(guest => guest.id === id);
+                                                    return (
+                                                        <span key={id} className="inline-flex items-center px-2 py-1 rounded bg-brand-50 text-brand-700 text-xs font-medium">
+                                                            {g?.name}
+                                                            <button type="button" onClick={() => setLinkedArrivals(linkedArrivals.filter(l => l !== id))} className="ml-1 text-brand-500 hover:text-brand-800 focus:outline-none">
+                                                                <X size={12} />
+                                                            </button>
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <hr className="my-4 border-gray-100" />
                                     <h3 className="font-medium text-base text-gray-900 mb-2">Travel - Departure</h3>
                                     <div className="grid grid-cols-2 gap-4">
@@ -422,6 +643,7 @@ export default function Guests() {
                                                 value={formData.departureTime}
                                                 onChange={e => setFormData({ ...formData, departureTime: e.target.value })}
                                             />
+                                            <p className="text-[11px] text-gray-500 mt-1.5 italic font-medium tracking-tight">Saved automatically — tap outside to close</p>
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Departure Flight/Train No.</label>
@@ -443,6 +665,60 @@ export default function Guests() {
                                                 onChange={e => setFormData({ ...formData, departurePnr: e.target.value })}
                                             />
                                         </div>
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Apply Departure details to other guests:</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                placeholder="Search and select guests..."
+                                                className="input-field mb-2"
+                                                value={departureSearch}
+                                                onChange={e => setDepartureSearch(e.target.value)}
+                                                onFocus={() => setShowDepartureOptions(true)}
+                                                onBlur={() => setTimeout(() => setShowDepartureOptions(false), 200)}
+                                            />
+                                            {showDepartureOptions && (
+                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto top-[42px]">
+                                                    {guests
+                                                        .filter(g => !g.isTentative && g.id !== editingGuest?.id && !linkedDepartures.includes(g.id))
+                                                        .filter(g => g.name.toLowerCase().includes(departureSearch.toLowerCase()))
+                                                        .slice(0, 50)
+                                                        .map(g => (
+                                                            <div
+                                                                key={g.id}
+                                                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                                                onMouseDown={(e) => {
+                                                                    e.preventDefault();
+                                                                    setLinkedDepartures([...linkedDepartures, g.id]);
+                                                                    setDepartureSearch('');
+                                                                }}
+                                                            >
+                                                                {g.name}
+                                                            </div>
+                                                        ))}
+                                                    {guests.filter(g => !g.isTentative && g.id !== editingGuest?.id && !linkedDepartures.includes(g.id)).filter(g => g.name.toLowerCase().includes(departureSearch.toLowerCase())).length === 0 && (
+                                                        <div className="px-4 py-2 text-gray-500 text-sm">No guests found</div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {linkedDepartures.length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {linkedDepartures.map(id => {
+                                                    const g = guests.find(guest => guest.id === id);
+                                                    return (
+                                                        <span key={id} className="inline-flex items-center px-2 py-1 rounded bg-brand-50 text-brand-700 text-xs font-medium">
+                                                            {g?.name}
+                                                            <button type="button" onClick={() => setLinkedDepartures(linkedDepartures.filter(l => l !== id))} className="ml-1 text-brand-500 hover:text-brand-800 focus:outline-none">
+                                                                <X size={12} />
+                                                            </button>
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="mt-8 flex justify-end gap-3">

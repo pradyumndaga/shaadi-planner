@@ -14,6 +14,62 @@ router.use((req, res, next) => {
     next();
 });
 
+// USER / ACCESS SHARE
+router.get('/user/share-code', async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({ where: { id: req.userId }, include: { sharedUsers: { select: { mobile: true } }, primaryUser: { select: { mobile: true } } } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        let code = user.shareCode;
+        if (!code) {
+            // Generate a 6-character alphanumeric code
+            code = Math.random().toString(36).substring(2, 8).toUpperCase();
+            await prisma.user.update({
+                where: { id: req.userId },
+                data: { shareCode: code }
+            });
+        }
+        res.json({ shareCode: code, sharedUsers: user.sharedUsers, primaryUser: user.primaryUser });
+    } catch (err) {
+        console.error('Error fetching share code:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/user/join', async (req, res) => {
+    try {
+        const { shareCode } = req.body;
+
+        // Handle disconnect
+        if (!shareCode) {
+            await prisma.user.update({
+                where: { id: req.userId },
+                data: { sharedWithId: null }
+            });
+            return res.json({ message: 'Disconnected from shared access' });
+        }
+
+        const primaryUser = await prisma.user.findUnique({ where: { shareCode: shareCode.toUpperCase() } });
+        if (!primaryUser) {
+            return res.status(404).json({ error: 'Invalid share code. No wedding found.' });
+        }
+
+        if (primaryUser.id === req.userId) {
+            return res.status(400).json({ error: 'You cannot join your own wedding manually.' });
+        }
+
+        await prisma.user.update({
+            where: { id: req.userId },
+            data: { sharedWithId: primaryUser.id }
+        });
+
+        res.json({ message: `Successfully joined wedding linked to ${primaryUser.mobile}` });
+    } catch (err) {
+        console.error('Error joining wedding:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // DASHBOARD STATS
 router.post('/rooms/batch-allocate', async (req, res) => {
     console.log('HIT: /rooms/batch-allocate');
@@ -23,7 +79,7 @@ router.post('/rooms/batch-allocate', async (req, res) => {
 
         const updates = allocations.map(a =>
             prisma.guest.update({
-                where: { id: parseInt(a.guestId), userId: req.userId },
+                where: { id: parseInt(a.guestId), userId: req.effectiveUserId },
                 data: { roomId: a.roomId ? parseInt(a.roomId) : null }
             })
         );
@@ -37,16 +93,19 @@ router.post('/rooms/batch-allocate', async (req, res) => {
 
 router.get('/stats', async (req, res) => {
     try {
-        const totalGuests = await prisma.guest.count({ where: { userId: req.userId } });
+        const totalGuests = await prisma.guest.count({ where: { userId: req.effectiveUserId } });
         const guestsWithRooms = await prisma.guest.count({
-            where: { userId: req.userId, roomId: { not: null } }
+            where: { userId: req.effectiveUserId, roomId: { not: null }, isTentative: false }
+        });
+        const tentativeGuests = await prisma.guest.count({
+            where: { userId: req.effectiveUserId, isTentative: true }
         });
         const unnotifiedGuests = await prisma.guest.count({
-            where: { userId: req.userId, roomId: { not: null }, isNotified: false }
+            where: { userId: req.effectiveUserId, roomId: { not: null }, isNotified: false }
         });
-        const totalRooms = await prisma.room.count({ where: { userId: req.userId } });
+        const totalRooms = await prisma.room.count({ where: { userId: req.effectiveUserId } });
         const rooms = await prisma.room.findMany({
-            where: { userId: req.userId },
+            where: { userId: req.effectiveUserId },
             include: { guests: true }
         });
 
@@ -54,12 +113,14 @@ router.get('/stats', async (req, res) => {
         rooms.forEach(r => totalCapacity += r.capacity);
 
         // Finance
-        const expenses = await prisma.finance.findMany({ where: { userId: req.userId } });
+        const expenses = await prisma.finance.findMany({ where: { userId: req.effectiveUserId } });
         const totalSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
 
         res.json({
             totalGuests,
-            unassignedGuests: totalGuests - guestsWithRooms,
+            tentativeGuests,
+            visitingGuests: totalGuests - tentativeGuests,
+            unassignedGuests: (totalGuests - tentativeGuests) - guestsWithRooms,
             totalRooms,
             totalCapacity,
             remainingCapacity: totalCapacity - guestsWithRooms,
@@ -76,7 +137,7 @@ router.get('/guests/unnotified', async (req, res) => {
     console.log('HIT: GET /guests/unnotified');
     try {
         const guests = await prisma.guest.findMany({
-            where: { userId: req.userId, roomId: { not: null }, isNotified: false },
+            where: { userId: req.effectiveUserId, roomId: { not: null }, isNotified: false },
             include: { room: true },
             orderBy: { name: 'asc' }
         });
@@ -90,7 +151,7 @@ router.get('/guests', async (req, res) => {
     console.log('HIT: GET /guests');
     try {
         const guests = await prisma.guest.findMany({
-            where: { userId: req.userId },
+            where: { userId: req.effectiveUserId },
             include: { room: true, travelPlan: true },
             orderBy: { createdAt: 'desc' }
         });
@@ -106,7 +167,7 @@ router.post('/guests/notify', async (req, res) => {
         if (!Array.isArray(guestIds)) return res.status(400).json({ error: 'guestIds must be an array' });
 
         const guests = await prisma.guest.findMany({
-            where: { id: { in: guestIds }, userId: req.userId },
+            where: { id: { in: guestIds }, userId: req.effectiveUserId },
             include: { room: true }
         });
 
@@ -117,7 +178,7 @@ router.post('/guests/notify', async (req, res) => {
         }
 
         await prisma.guest.updateMany({
-            where: { id: { in: guestIds }, userId: req.userId },
+            where: { id: { in: guestIds }, userId: req.effectiveUserId },
             data: { isNotified: true }
         });
 
@@ -129,18 +190,44 @@ router.post('/guests/notify', async (req, res) => {
 
 router.post('/guests', async (req, res) => {
     try {
-        const data = { ...req.body };
+        const { linkedArrivalGuestIds, linkedDepartureGuestIds, ...otherData } = req.body;
+        const data = { ...otherData };
         if (data.arrivalTime) data.arrivalTime = new Date(data.arrivalTime);
         else data.arrivalTime = null;
         if (data.departureTime) data.departureTime = new Date(data.departureTime);
         else data.departureTime = null;
 
         // Force userId
-        data.userId = req.userId;
+        data.userId = req.effectiveUserId;
 
         const newGuest = await prisma.guest.create({
             data: data
         });
+
+        // Apply linked arrivals
+        if (Array.isArray(linkedArrivalGuestIds) && linkedArrivalGuestIds.length > 0) {
+            await prisma.guest.updateMany({
+                where: { id: { in: linkedArrivalGuestIds.map(id => parseInt(id)) }, userId: req.effectiveUserId },
+                data: {
+                    arrivalTime: data.arrivalTime,
+                    arrivalFlightNo: data.arrivalFlightNo,
+                    arrivalPnr: data.arrivalPnr
+                }
+            });
+        }
+
+        // Apply linked departures
+        if (Array.isArray(linkedDepartureGuestIds) && linkedDepartureGuestIds.length > 0) {
+            await prisma.guest.updateMany({
+                where: { id: { in: linkedDepartureGuestIds.map(id => parseInt(id)) }, userId: req.effectiveUserId },
+                data: {
+                    departureTime: data.departureTime,
+                    departureFlightNo: data.departureFlightNo,
+                    departurePnr: data.departurePnr
+                }
+            });
+        }
+
         res.json(newGuest);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -149,7 +236,8 @@ router.post('/guests', async (req, res) => {
 
 router.put('/guests/:id', async (req, res) => {
     try {
-        const data = { ...req.body };
+        const { linkedArrivalGuestIds, linkedDepartureGuestIds, ...otherData } = req.body;
+        const data = { ...otherData };
         // Sanitize dates: if empty string or invalid, set to null
         if (data.arrivalTime && data.arrivalTime !== '') {
             data.arrivalTime = new Date(data.arrivalTime);
@@ -174,10 +262,35 @@ router.put('/guests/:id', async (req, res) => {
         const updated = await prisma.guest.update({
             where: {
                 id: parseInt(req.params.id),
-                userId: req.userId // Security check
+                userId: req.effectiveUserId // Security check
             },
             data: data
         });
+
+        // Apply linked arrivals
+        if (Array.isArray(linkedArrivalGuestIds) && linkedArrivalGuestIds.length > 0) {
+            await prisma.guest.updateMany({
+                where: { id: { in: linkedArrivalGuestIds.map(id => parseInt(id)) }, userId: req.effectiveUserId },
+                data: {
+                    arrivalTime: data.arrivalTime,
+                    arrivalFlightNo: data.arrivalFlightNo,
+                    arrivalPnr: data.arrivalPnr
+                }
+            });
+        }
+
+        // Apply linked departures
+        if (Array.isArray(linkedDepartureGuestIds) && linkedDepartureGuestIds.length > 0) {
+            await prisma.guest.updateMany({
+                where: { id: { in: linkedDepartureGuestIds.map(id => parseInt(id)) }, userId: req.effectiveUserId },
+                data: {
+                    departureTime: data.departureTime,
+                    departureFlightNo: data.departureFlightNo,
+                    departurePnr: data.departurePnr
+                }
+            });
+        }
+
         res.json(updated);
     } catch (err) {
         console.error('Update Guest Error:', err);
@@ -190,7 +303,7 @@ router.delete('/guests/:id', async (req, res) => {
         await prisma.guest.delete({
             where: {
                 id: parseInt(req.params.id),
-                userId: req.userId
+                userId: req.effectiveUserId
             }
         });
         res.json({ message: 'Deleted' });
@@ -201,7 +314,7 @@ router.delete('/guests/:id', async (req, res) => {
 
 router.delete('/guests', async (req, res) => {
     try {
-        await prisma.guest.deleteMany({ where: { userId: req.userId } });
+        await prisma.guest.deleteMany({ where: { userId: req.effectiveUserId } });
         res.json({ message: 'All guests deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -218,7 +331,7 @@ router.post('/guests/bulk-delete', async (req, res) => {
         await prisma.guest.deleteMany({
             where: {
                 id: { in: ids.map(id => parseInt(id)) },
-                userId: req.userId
+                userId: req.effectiveUserId
             }
         });
 
@@ -256,7 +369,7 @@ router.post('/guests/upload', upload.single('file'), async (req, res) => {
                     name: rawName,
                     mobile: rawPhone,
                     gender: finalGender,
-                    userId: req.userId // Scoped
+                    userId: req.effectiveUserId // Scoped
                 });
             }
         }
@@ -277,7 +390,7 @@ router.post('/guests/upload', upload.single('file'), async (req, res) => {
 router.get('/rooms', async (req, res) => {
     try {
         const rooms = await prisma.room.findMany({
-            where: { userId: req.userId },
+            where: { userId: req.effectiveUserId },
             include: { guests: true },
             orderBy: { id: 'asc' }
         });
@@ -293,7 +406,7 @@ router.post('/rooms', async (req, res) => {
             data: {
                 name: req.body.name,
                 capacity: parseInt(req.body.capacity),
-                userId: req.userId
+                userId: req.effectiveUserId
             }
         });
         res.json(newRoom);
@@ -308,13 +421,13 @@ router.post('/rooms/bulk', async (req, res) => {
         const capacity = parseInt(req.body.capacity || 2);
         const prefix = req.body.prefix || 'Room';
 
-        const currentRooms = await prisma.room.count({ where: { userId: req.userId } });
+        const currentRooms = await prisma.room.count({ where: { userId: req.effectiveUserId } });
         const roomsToCreate = [];
         for (let i = 1; i <= count; i++) {
             roomsToCreate.push({
                 name: `${prefix} ${currentRooms + i}`,
                 capacity: capacity,
-                userId: req.userId
+                userId: req.effectiveUserId
             });
         }
 
@@ -338,7 +451,7 @@ router.put('/rooms/:id', async (req, res) => {
         const updated = await prisma.room.update({
             where: {
                 id: parseInt(req.params.id),
-                userId: req.userId
+                userId: req.effectiveUserId
             },
             data
         });
@@ -353,7 +466,7 @@ router.delete('/rooms/:id', async (req, res) => {
         await prisma.room.delete({
             where: {
                 id: parseInt(req.params.id),
-                userId: req.userId
+                userId: req.effectiveUserId
             }
         });
         res.json({ message: 'Deleted' });
@@ -372,7 +485,7 @@ router.post('/rooms/allocate', async (req, res) => {
             const updated = await prisma.guest.update({
                 where: {
                     id: parseInt(guestId),
-                    userId: req.userId
+                    userId: req.effectiveUserId
                 },
                 data: { roomId: null }
             });
@@ -382,7 +495,7 @@ router.post('/rooms/allocate', async (req, res) => {
         const room = await prisma.room.findUnique({
             where: {
                 id: parseInt(roomId),
-                userId: req.userId
+                userId: req.effectiveUserId
             },
             include: { guests: true }
         });
@@ -397,7 +510,7 @@ router.post('/rooms/allocate', async (req, res) => {
         const updatedGuest = await prisma.guest.update({
             where: {
                 id: parseInt(guestId),
-                userId: req.userId
+                userId: req.effectiveUserId
             },
             data: { roomId: parseInt(roomId) }
         });
@@ -414,11 +527,11 @@ router.post('/rooms/allocate', async (req, res) => {
 router.get('/rooms/export/excel', async (req, res) => {
     try {
         const rooms = await prisma.room.findMany({
-            where: { userId: req.userId },
+            where: { userId: req.effectiveUserId },
             include: { guests: true }
         });
         const unassignedGuests = await prisma.guest.findMany({
-            where: { userId: req.userId, roomId: null }
+            where: { userId: req.effectiveUserId, roomId: null }
         });
 
         const data = [];
@@ -459,7 +572,7 @@ router.get('/rooms/export/excel', async (req, res) => {
 // EXPORT TRAVEL REPORT (EXCEL)
 router.get('/guests/export/travel', async (req, res) => {
     try {
-        const guests = await prisma.guest.findMany({ where: { userId: req.userId } });
+        const guests = await prisma.guest.findMany({ where: { userId: req.effectiveUserId } });
 
         const { mode } = req.query;
         const wb = xlsx.utils.book_new();
@@ -538,7 +651,7 @@ router.get('/guests/export/travel', async (req, res) => {
 router.get('/guests/export/travel/pdf', async (req, res) => {
     try {
         const { mode } = req.query;
-        const guests = await prisma.guest.findMany({ where: { userId: req.userId } });
+        const guests = await prisma.guest.findMany({ where: { userId: req.effectiveUserId } });
         const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
         const brandColor = '#4f46e5';
@@ -556,7 +669,7 @@ router.get('/guests/export/travel/pdf', async (req, res) => {
             console.error('Logo not found at:', logoPath);
         }
 
-        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('Wedding Planner', { align: 'left' });
+        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('ShaadiPlanner', { align: 'left' });
         doc.fillColor(grayColor).fontSize(10).font('Helvetica').text(`Travel Coordination Report • Generated ${new Date().toLocaleDateString()}`, { align: 'left' });
         doc.moveDown(1.5);
 
@@ -665,11 +778,11 @@ router.get('/guests/export/travel/pdf', async (req, res) => {
 router.get('/rooms/export/pdf', async (req, res) => {
     try {
         const rooms = await prisma.room.findMany({
-            where: { userId: req.userId },
+            where: { userId: req.effectiveUserId },
             include: { guests: true }
         });
         const unassignedGuests = await prisma.guest.findMany({
-            where: { userId: req.userId, roomId: null }
+            where: { userId: req.effectiveUserId, roomId: null }
         });
 
         const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -689,7 +802,7 @@ router.get('/rooms/export/pdf', async (req, res) => {
             console.error('Logo not found at:', logoPath);
         }
 
-        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('Wedding Planner', { align: 'left' });
+        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('ShaadiPlanner', { align: 'left' });
         doc.fillColor(grayColor).fontSize(10).font('Helvetica').text(`Room Assignment Report • Generated ${new Date().toLocaleDateString()}`, { align: 'left' });
         doc.moveDown(1.5);
 
@@ -728,13 +841,28 @@ router.get('/rooms/export/pdf', async (req, res) => {
             doc.moveDown(1.2);
         });
 
-        if (unassignedGuests.length > 0) {
+        const visitingUnassigned = unassignedGuests.filter(g => !g.isTentative);
+        const tentativeUnassigned = unassignedGuests.filter(g => g.isTentative);
+
+        if (visitingUnassigned.length > 0) {
             doc.addPage();
-            doc.fillColor('#dc2626').fontSize(18).font('Helvetica-Bold').text('UNASSIGNED GUESTS (QUEUE)', { underline: false });
+            doc.fillColor('#dc2626').fontSize(18).font('Helvetica-Bold').text('UNASSIGNED GUESTS (VISITING)', { underline: false });
             doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#dc2626').lineWidth(2).stroke();
             doc.moveDown(1);
 
-            unassignedGuests.forEach(guest => {
+            visitingUnassigned.forEach(guest => {
+                doc.fillColor('#1f2937').fontSize(11).font('Helvetica').text(`  • ${guest.name.padEnd(30)} | ${guest.mobile} | ${guest.gender}`, { indent: 20 });
+                doc.moveDown(0.3);
+            });
+        }
+
+        if (tentativeUnassigned.length > 0) {
+            doc.addPage();
+            doc.fillColor('#f97316').fontSize(18).font('Helvetica-Bold').text('TENTATIVE INVITEES', { underline: false });
+            doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#f97316').lineWidth(2).stroke();
+            doc.moveDown(1);
+
+            tentativeUnassigned.forEach(guest => {
                 doc.fillColor('#1f2937').fontSize(11).font('Helvetica').text(`  • ${guest.name.padEnd(30)} | ${guest.mobile} | ${guest.gender}`, { indent: 20 });
                 doc.moveDown(0.3);
             });
@@ -752,10 +880,21 @@ router.get('/rooms/export/pdf', async (req, res) => {
 // EXPORT FULL GUEST LIST (PDF)
 router.get('/guests/export/all/pdf', async (req, res) => {
     try {
+        const attendanceFilter = req.query.attendance || 'All';
+        const whereClause = { userId: req.effectiveUserId };
+
+        // Let's get the overall counts for the header regardless of the active filter
+        const totalGuestsCount = await prisma.guest.count({ where: { userId: req.effectiveUserId } });
+        const tentativeCount = await prisma.guest.count({ where: { userId: req.effectiveUserId, isTentative: true } });
+        const visitingCount = totalGuestsCount - tentativeCount;
+
+        // Apply active filter to the actual table data
+        if (attendanceFilter === 'Visiting') whereClause.isTentative = false;
+        if (attendanceFilter === 'Tentative') whereClause.isTentative = true;
+
         const guests = await prisma.guest.findMany({
-            where: { userId: req.userId },
-            include: { room: true },
-            orderBy: { name: 'asc' }
+            where: whereClause,
+            include: { room: true }
         });
 
         const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -775,12 +914,26 @@ router.get('/guests/export/all/pdf', async (req, res) => {
             console.error('Logo not found');
         }
 
-        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('Wedding Planner', { align: 'left' });
+        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('ShaadiPlanner', { align: 'left' });
         doc.fillColor(grayColor).fontSize(10).font('Helvetica').text(`Master Guest List • Generated ${new Date().toLocaleDateString()}`, { align: 'left' });
         doc.moveDown(1.5);
 
-        doc.fillColor(brandColor).fontSize(18).font('Helvetica-Bold').text('ALL GUESTS', { underline: false });
-        doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor(brandColor).lineWidth(2).stroke();
+        doc.fillColor(brandColor).fontSize(18).font('Helvetica-Bold').text('GUEST LIST', { underline: false });
+        doc.fillColor(grayColor).fontSize(10).font('Helvetica').text(`Filter: ${attendanceFilter}`);
+        doc.moveDown(0.5);
+
+        // Summary Counts Box
+        doc.fillColor('#f8fafc').rect(50, doc.y, 500, 40).fill();
+        doc.strokeColor('#e2e8f0').lineWidth(1).rect(50, doc.y, 500, 40).stroke();
+
+        const summaryY = doc.y + 15;
+        doc.fillColor('#1e293b').fontSize(11).font('Helvetica-Bold');
+
+        doc.text(`Total Guests:`, 70, summaryY, { continued: true }).font('Helvetica').text(` ${totalGuestsCount}`, { continued: false });
+        doc.font('Helvetica-Bold').text(`Visiting:`, 240, summaryY, { continued: true }).font('Helvetica').text(` ${visitingCount}`, { continued: false });
+        doc.font('Helvetica-Bold').text(`Tentative:`, 400, summaryY, { continued: true }).font('Helvetica').text(` ${tentativeCount}`, { continued: false });
+
+        doc.y += 40;
         doc.moveDown(1);
 
         // Table Header
@@ -788,8 +941,9 @@ router.get('/guests/export/all/pdf', async (req, res) => {
         doc.fillColor('#f3f4f6').rect(50, startY, 500, 25).fill();
         doc.fillColor('#111827').fontSize(10).font('Helvetica-Bold');
         doc.text('#', 60, startY + 7);
-        doc.text('Name', 100, startY + 7);
-        doc.text('Mobile', 300, startY + 7);
+        doc.text('Name', 90, startY + 7);
+        doc.text('Mobile', 240, startY + 7);
+        doc.text('Attendance', 330, startY + 7);
         doc.text('Room', 420, startY + 7);
         doc.y = startY + 30;
 
@@ -801,8 +955,9 @@ router.get('/guests/export/all/pdf', async (req, res) => {
                 doc.fillColor('#f3f4f6').rect(50, newPageY, 500, 25).fill();
                 doc.fillColor('#111827').fontSize(10).font('Helvetica-Bold');
                 doc.text('#', 60, newPageY + 7);
-                doc.text('Name', 100, newPageY + 7);
-                doc.text('Mobile', 300, newPageY + 7);
+                doc.text('Name', 90, newPageY + 7);
+                doc.text('Mobile', 240, newPageY + 7);
+                doc.text('Attendance', 330, newPageY + 7);
                 doc.text('Room', 420, newPageY + 7);
                 doc.y = newPageY + 30;
             }
@@ -812,12 +967,23 @@ router.get('/guests/export/all/pdf', async (req, res) => {
                 doc.fillColor('#f9fafb').rect(50, doc.y - 2, 500, 20).fill();
             }
 
+            const currentY = doc.y;
             doc.fillColor('#374151').fontSize(10).font('Helvetica');
-            doc.text(`${index + 1}`, 60, doc.y);
-            doc.text(g.name, 100, doc.y, { width: 190, lineBreak: false });
-            doc.text(g.mobile, 300, doc.y);
-            doc.text(g.room ? g.room.name : '-', 420, doc.y);
-            doc.y += 20;
+            doc.text(`${index + 1}`, 60, currentY, { lineBreak: false });
+
+            // Truncate name to prevent wrapping
+            const safeName = g.name.length > 25 ? g.name.substring(0, 25) + '...' : g.name;
+            doc.text(safeName, 90, currentY, { lineBreak: false });
+
+            doc.text(g.mobile || '-', 240, currentY, { lineBreak: false });
+
+            const attendanceStr = g.isTentative ? 'Tentative' : 'Visiting';
+            doc.text(attendanceStr, 330, currentY, { lineBreak: false });
+
+            const roomStr = g.room ? (g.room.name.length > 20 ? g.room.name.substring(0, 20) + '...' : g.room.name) : '-';
+            doc.text(roomStr, 420, currentY, { lineBreak: false });
+
+            doc.y = currentY + 20;
         });
 
         doc.end();
@@ -833,7 +999,7 @@ router.get('/guests/export/all/pdf', async (req, res) => {
 router.get('/finance', async (req, res) => {
     try {
         const expenses = await prisma.finance.findMany({
-            where: { userId: req.userId },
+            where: { userId: req.effectiveUserId },
             orderBy: { createdAt: 'desc' }
         });
         res.json(expenses);
@@ -849,7 +1015,7 @@ router.post('/finance', async (req, res) => {
                 category: req.body.category,
                 amount: parseFloat(req.body.amount),
                 description: req.body.description,
-                userId: req.userId
+                userId: req.effectiveUserId
             }
         });
         res.json(exp);

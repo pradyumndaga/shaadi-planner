@@ -2,7 +2,10 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'wedding-secret-key-123';
 
-const authMiddleware = (req, res, next) => {
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+const authMiddleware = async (req, res, next) => {
     let token = '';
     const authHeader = req.headers.authorization;
 
@@ -18,7 +21,16 @@ const authMiddleware = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.userId = decoded.userId;
+
+        const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+        if (!user) {
+            return res.status(401).json({ error: 'Unauthorized: User not found' });
+        }
+
+        req.user = user;
+        req.userId = user.id;
+        req.effectiveUserId = user.sharedWithId || user.id;
+
         next();
     } catch (err) {
         return res.status(401).json({ error: 'Unauthorized: Invalid token' });

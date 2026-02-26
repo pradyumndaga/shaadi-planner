@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { LayoutDashboard, Users, Bed, Plane, Wallet, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Bed, Plane, Wallet, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Guests from './pages/Guests';
 import Rooms from './pages/Rooms';
@@ -9,6 +9,7 @@ import Travel from './pages/Travel';
 import Finance from './pages/Finance';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import Settings from './pages/Settings';
 import ProtectedRoute, { logout } from './components/ProtectedRoute';
 
 const menuItems = [
@@ -54,7 +55,17 @@ function Layout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-gray-50">
+        <div className="p-4 border-t border-gray-50 flex flex-col gap-2">
+          <Link
+            to="/settings"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${location.pathname === '/settings'
+              ? 'bg-brand-50 text-brand-700'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+          >
+            <SettingsIcon size={20} className={location.pathname === '/settings' ? 'text-brand-600' : 'text-gray-400'} />
+            Settings
+          </Link>
           <button
             onClick={logout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-red-600 hover:bg-red-50 transition-colors"
@@ -89,6 +100,7 @@ export default function App() {
           <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
           <Route path="/travel" element={<ProtectedRoute><Travel /></ProtectedRoute>} />
           <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
