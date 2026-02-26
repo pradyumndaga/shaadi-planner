@@ -104,7 +104,7 @@ cloudflared tunnel login
 cloudflared tunnel create shaadi
 ```
 *It will print a Tunnel ID (a long string like `a1b2c3d4-xxxx-xxxx...`). **Copy this ID**.*
-
+e4064315-9adf-40b0-8312-fd0bc40b40f4
 ### 4. Create the Configuration File
 ```bash
 mkdir -p ~/.cloudflared
@@ -114,13 +114,13 @@ nano ~/.cloudflared/config.yml
 Paste the following into the file, replacing `<YOUR_TUNNEL_ID>` with the ID from the previous step, and `yourdomain.com` with your actual domain:
 
 ```yaml
-tunnel: <YOUR_TUNNEL_ID>
-credentials-file: /home/USERNAME/.cloudflared/<YOUR_TUNNEL_ID>.json
+tunnel: e4064315-9adf-40b0-8312-fd0bc40b40f4
+credentials-file: /home/pradyumn/.cloudflared/e4064315-9adf-40b0-8312-fd0bc40b40f4.json
 
 ingress:
-  - hostname: shaadi.yourdomain.com
+  - hostname: shaadi.rupaiq.in
     service: http://localhost:3000
-  - hostname: api.yourdomain.com
+  - hostname: api.rupaiq.in
     service: http://localhost:5001
   - service: http_status:404
 ```
@@ -137,6 +137,8 @@ cloudflared tunnel route dns shaadi api.yourdomain.com
 ### 6. Install as a System Service
 To ensure the tunnel connects automatically whenever your laptop is on and connected to the internet:
 ```bash
+sudo mkdir -p /etc/cloudflared/
+sudo cp ~/.cloudflared/config.yml /etc/cloudflared/
 sudo cloudflared service install
 sudo systemctl start cloudflared
 sudo systemctl enable cloudflared

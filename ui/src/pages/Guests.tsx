@@ -277,13 +277,13 @@ export default function Guests() {
 
     return (
         <div className="animate-fade-in">
-            <header className="flex justify-between items-center mb-8">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold font-display text-gray-900">Guest List</h1>
                     <p className="text-gray-500 mt-1">Manage all your wedding guests</p>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
                     <input
                         type="file"
                         ref={fileInputRef}

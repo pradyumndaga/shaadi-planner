@@ -66,12 +66,12 @@ export default function Travel() {
 
     return (
         <div className="animate-fade-in">
-            <header className="mb-8 flex justify-between items-end">
+            <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
                     <h1 className="text-3xl font-bold font-display text-gray-900">Travel Itinerary</h1>
                     <p className="text-gray-500 mt-1">Group guests by transport for easy pickup coordination</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
                     <button
                         onClick={() => window.open(`${API_BASE_URL}/api/guests/export/travel?mode=${filterMode}&token=${localStorage.getItem('token')}`, '_blank')}
                         className="btn-secondary flex items-center gap-2"
@@ -100,7 +100,7 @@ export default function Travel() {
                         onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-2 bg-white p-1 rounded-lg border border-gray-200">
+                <div className="flex flex-wrap justify-center gap-2 bg-white p-1 rounded-lg border border-gray-200">
                     <button
                         onClick={() => setFilterMode('all')}
                         className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${filterMode === 'all' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}

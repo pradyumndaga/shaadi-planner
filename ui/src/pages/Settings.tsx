@@ -176,7 +176,7 @@ export default function Settings() {
 
                         <div className="mt-8">
                             <label className="block text-sm font-medium text-gray-700 mb-2">Share Code</label>
-                            <div className="flex gap-3">
+                            <div className="flex flex-col sm:flex-row gap-3">
                                 <input
                                     type="text"
                                     placeholder="e.g. A1B2C3"

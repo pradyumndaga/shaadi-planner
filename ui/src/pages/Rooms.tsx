@@ -4,6 +4,7 @@ import {
     closestCenter,
     KeyboardSensor,
     PointerSensor,
+    TouchSensor,
     useSensor,
     useSensors,
     DragOverlay
@@ -37,7 +38,15 @@ interface RoomType {
 }
 
 // Draggable Guest Item
-function SortableGuest({ id, guest, onRemove, disabled, compact }: { id: string, guest: Guest, onRemove?: (guestId: number) => void, disabled?: boolean, compact?: boolean }) {
+function SortableGuest({ id, guest, onRemove, onMove, availableRooms, disabled, compact }: {
+    id: string,
+    guest: Guest,
+    onRemove?: (guestId: number) => void,
+    onMove?: (guestId: number, roomId: number | null) => void,
+    availableRooms?: { id: number, name: string }[],
+    disabled?: boolean,
+    compact?: boolean
+}) {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id, disabled });
 
     const style = {
@@ -59,10 +68,38 @@ function SortableGuest({ id, guest, onRemove, disabled, compact }: { id: string,
             {...attributes}
             {...listeners}
             className={`group relative mb-2 ${compact ? 'p-3' : 'p-4'} rounded-lg border shadow-sm transition-all bg-white ${disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing hover:border-brand-400 hover:shadow-md'} ${currentGenderClass}`}
+            onPointerDown={(e) => {
+                // Ignore drag trigger on select elements
+                if ((e.target as HTMLElement).tagName.toLowerCase() === 'select') {
+                    // Do not call e.stopPropagation() here, as it breaks the select interaction on some touch devices,
+                    // but we do need a way to let the select native behavior happen.
+                }
+            }}
         >
-            <div className={compact ? 'pr-4' : 'pr-6'}>
-                <p className={`font-medium ${compact ? 'text-xs' : 'text-sm'} text-gray-900 leading-tight`}>{guest.name}</p>
-                <p className={`${compact ? 'text-[10px]' : 'text-xs'} text-gray-500 mt-0.5`}>{guest.mobile}</p>
+            <div className={`w-full ${compact ? 'pr-2' : 'pr-5'}`}>
+                <p className={`font-medium ${compact ? 'text-xs' : 'text-sm'} text-gray-900 leading-tight break-words max-w-full`}>{guest.name}</p>
+                <div className="flex flex-col gap-2 mt-1.5 w-full">
+                    <p className={`${compact ? 'text-[10px]' : 'text-xs'} text-gray-500`}>{guest.mobile}</p>
+
+                    {/* Mobile/Fallback Dropdown for moving guests */}
+                    {!disabled && onMove && availableRooms && (
+                        <div className="md:hidden w-full relative z-10" onPointerDown={(e) => e.stopPropagation()}>
+                            <select
+                                className="w-full text-xs py-1.5 px-2 pr-6 border border-brand-200 rounded cursor-pointer bg-brand-50 text-brand-700 focus:outline-none focus:ring-1 focus:ring-brand-500 shadow-sm"
+                                value={guest.roomId || 'unassigned'}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    onMove(guest.id, val === 'unassigned' ? null : parseInt(val));
+                                }}
+                            >
+                                <option value="unassigned">Unassigned</option>
+                                {availableRooms.map(r => (
+                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                </div>
             </div>
             {onRemove && (
                 <button
@@ -82,10 +119,12 @@ function SortableGuest({ id, guest, onRemove, disabled, compact }: { id: string,
 }
 
 // Droppable Room Container
-function Room({ room, guests, onRemoveGuest, onToggleExtraBed, isEditing, onDeleteRoom }: {
+function Room({ room, guests, onRemoveGuest, onMoveGuest, availableRooms, onToggleExtraBed, isEditing, onDeleteRoom }: {
     room: RoomType,
     guests: Guest[],
     onRemoveGuest: (guestId: number) => void,
+    onMoveGuest: (guestId: number, roomId: number | null) => void,
+    availableRooms: { id: number, name: string }[],
     onToggleExtraBed: (roomId: number, current: boolean) => void,
     isEditing: boolean,
     onDeleteRoom: (roomId: number) => void
@@ -137,7 +176,15 @@ function Room({ room, guests, onRemoveGuest, onToggleExtraBed, isEditing, onDele
             <div className="flex-1">
                 <SortableContext items={guests.map(g => `guest-${g.id}`)} strategy={verticalListSortingStrategy}>
                     {guests.map(g => (
-                        <SortableGuest key={g.id} id={`guest-${g.id}`} guest={g} onRemove={onRemoveGuest} disabled={!isEditing} />
+                        <SortableGuest
+                            key={g.id}
+                            id={`guest-${g.id}`}
+                            guest={g}
+                            onRemove={onRemoveGuest}
+                            onMove={onMoveGuest}
+                            availableRooms={availableRooms}
+                            disabled={!isEditing}
+                        />
                     ))}
                 </SortableContext>
                 {guests.length === 0 && isEditing && (
@@ -279,7 +326,17 @@ export default function Rooms() {
     };
 
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            }
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 250,
+                tolerance: 5,
+            }
+        }),
         useSensor(KeyboardSensor)
     );
 
@@ -392,12 +449,12 @@ export default function Rooms() {
 
     return (
         <div className="animate-fade-in flex flex-col h-full">
-            <header className="mb-8 flex justify-between items-end">
+            <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
                     <h1 className="text-3xl font-bold font-display text-gray-900">Rooms & Allotment</h1>
                     <p className="text-gray-500 mt-1">Drag and drop guests to allocate rooms</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
                     {!isEditing ? (
                         <button onClick={startEditing} className="btn-secondary flex items-center gap-2 border-brand-200 text-brand-700 bg-brand-50 hover:bg-brand-100">
                             <Edit size={18} />
@@ -468,7 +525,22 @@ export default function Rooms() {
                                     {(isEditing ? tempUnassigned : unassignedGuests)
                                         .filter(g => g.name.toLowerCase().includes(queueSearch.toLowerCase()))
                                         .map(g => (
-                                            <SortableGuest key={g.id} id={`guest-${g.id}`} guest={g} disabled={!isEditing} compact />
+                                            <SortableGuest
+                                                key={g.id}
+                                                id={`guest-${g.id}`}
+                                                guest={g}
+                                                onMove={async (guestId: number, roomId: number | null) => {
+                                                    // Mobile Move Handler for Unassigned -> Room
+                                                    const fakeEvent = {
+                                                        active: { id: `guest-${guestId}` },
+                                                        over: { id: roomId ? `room-${roomId}` : 'unassigned' }
+                                                    };
+                                                    await handleDragEnd(fakeEvent);
+                                                }}
+                                                availableRooms={isEditing ? tempRooms.map(r => ({ id: r.id, name: r.name })) : rooms.map(r => ({ id: r.id, name: r.name }))}
+                                                disabled={!isEditing}
+                                                compact
+                                            />
                                         ))}
                                 </SortableContext>
                             </div>
@@ -496,6 +568,15 @@ export default function Rooms() {
                                     }
                                     setDeletedRoomIds(prev => new Set(prev).add(id));
                                 }}
+                                onMoveGuest={async (guestId: number, roomId: number | null) => {
+                                    // Mobile Move Handler for Room -> Room/Unassigned
+                                    const fakeEvent = {
+                                        active: { id: `guest-${guestId}` },
+                                        over: { id: roomId ? `room-${roomId}` : 'unassigned' }
+                                    };
+                                    await handleDragEnd(fakeEvent);
+                                }}
+                                availableRooms={isEditing ? tempRooms.map(r => ({ id: r.id, name: r.name })) : rooms.map(r => ({ id: r.id, name: r.name }))}
                                 onToggleExtraBed={async (id, current) => {
                                     if (isEditing) {
                                         setTempRooms(prev => {
