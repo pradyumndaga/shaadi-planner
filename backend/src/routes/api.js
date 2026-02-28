@@ -11,8 +11,9 @@ const qrcode = require('qrcode');
 const prisma = new PrismaClient();
 const upload = multer({ dest: 'uploads/' });
 
-// --- WhatsApp Native Client Initialization (Multi-Tenant) ---
 const fs = require('fs');
+const os = require('os');
+const tokenService = require('../middleware/downloadTokenService'); // Used for download tokens
 
 const waClients = new Map(); // userId -> { client, status, qrCode }
 
@@ -24,7 +25,13 @@ function getWaState(userId) {
 }
 
 function initWhatsApp(userId) {
-    const state = getWaState(userId);
+    const safeUserId = parseInt(userId, 10);
+    if (isNaN(safeUserId) || safeUserId <= 0) {
+        console.error(`[WHATSAPP] Blocked initialization with invalid userId: ${userId}`);
+        return;
+    }
+
+    const state = getWaState(safeUserId);
     if (state.client || state.status === 'starting') return;
 
     console.log(`[WHATSAPP] Initializing native client for user ${userId}...`);
@@ -33,11 +40,12 @@ function initWhatsApp(userId) {
     try {
         const client = new Client({
             authStrategy: new LocalAuth({
-                clientId: `user-${userId}`,
+                clientId: `user-${safeUserId}`,
                 dataPath: './.wwebjs_auth'
             }),
             puppeteer: {
-                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+                // Re-enable sandboxing for security, removing --no-sandbox
+                args: ['--disable-dev-shm-usage'],
                 headless: true,
             }
         });
@@ -151,6 +159,16 @@ router.get('/user/share-code', async (req, res) => {
     } catch (err) {
         console.error('Error fetching share code:', err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Generate a short-lived download token for PDF/Excel exports
+router.get('/user/download-token', async (req, res) => {
+    try {
+        const token = tokenService.generateToken(req.effectiveUserId);
+        res.json({ downloadToken: token });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to generate download token' });
     }
 });
 
@@ -433,11 +451,22 @@ router.post('/guests/notify', requireWriteAccess, async (req, res) => {
 
 router.post('/guests', requireWriteAccess, async (req, res) => {
     try {
-        const { linkedArrivalGuestIds, linkedDepartureGuestIds, ...otherData } = req.body;
-        const data = { ...otherData };
-        if (data.arrivalTime) data.arrivalTime = new Date(data.arrivalTime);
+        const { linkedArrivalGuestIds, linkedDepartureGuestIds,
+            name, mobile, gender, isTentative,
+            arrivalTime, arrivalFlightNo, arrivalPnr,
+            departureTime, departureFlightNo, departurePnr } = req.body;
+
+        // Fix: Mass Assignment Vulnerability - Explicitly construct the data object
+        const data = {
+            name, mobile, gender,
+            isTentative: !!isTentative,
+            arrivalFlightNo, arrivalPnr,
+            departureFlightNo, departurePnr
+        };
+
+        if (arrivalTime) data.arrivalTime = new Date(arrivalTime);
         else data.arrivalTime = null;
-        if (data.departureTime) data.departureTime = new Date(data.departureTime);
+        if (departureTime) data.departureTime = new Date(departureTime);
         else data.departureTime = null;
 
         // Force userId
@@ -479,28 +508,31 @@ router.post('/guests', requireWriteAccess, async (req, res) => {
 
 router.put('/guests/:id', requireWriteAccess, async (req, res) => {
     try {
-        const { linkedArrivalGuestIds, linkedDepartureGuestIds, ...otherData } = req.body;
-        const data = { ...otherData };
+        const { linkedArrivalGuestIds, linkedDepartureGuestIds,
+            name, mobile, gender, isTentative,
+            arrivalTime, arrivalFlightNo, arrivalPnr,
+            departureTime, departureFlightNo, departurePnr } = req.body;
+
+        // Fix: Mass Assignment Vulnerability - Explicitly construct the data object
+        const data = {
+            name, mobile, gender,
+            isTentative: !!isTentative,
+            arrivalFlightNo, arrivalPnr,
+            departureFlightNo, departurePnr
+        };
+
         // Sanitize dates: if empty string or invalid, set to null
-        if (data.arrivalTime && data.arrivalTime !== '') {
-            data.arrivalTime = new Date(data.arrivalTime);
+        if (arrivalTime && arrivalTime !== '') {
+            data.arrivalTime = new Date(arrivalTime);
         } else {
             data.arrivalTime = null;
         }
 
-        if (data.departureTime && data.departureTime !== '') {
-            data.departureTime = new Date(data.departureTime);
+        if (departureTime && departureTime !== '') {
+            data.departureTime = new Date(departureTime);
         } else {
             data.departureTime = null;
         }
-
-        // Clean up any old fields that might be sent from frontend
-        delete data.flightTrainNumber;
-        delete data.pnr;
-        delete data.id; // ensure ID isn't in body
-        delete data.room; // ensure joined room isn't in body
-        delete data.travelPlan;
-        delete data.userId; // don't allow changing owner
 
         const updated = await prisma.guest.update({
             where: {
@@ -704,6 +736,15 @@ router.post('/guests/upload', requireWriteAccess, upload.single('file'), async (
         res.json({ message: `Successfully uploaded ${created.count} guests`, count: created.count });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    } finally {
+        // Fix: Insecure File Upload / Storage Exhaustion
+        if (req.file && req.file.path) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (unlinkErr) {
+                console.error('Error deleting uploaded file:', unlinkErr);
+            }
+        }
     }
 });
 
@@ -1358,7 +1399,7 @@ router.get('/finance', async (req, res) => {
     }
 });
 
-router.post('/finance', async (req, res) => {
+router.post('/finance', requireWriteAccess, async (req, res) => {
     try {
         const exp = await prisma.finance.create({
             data: {

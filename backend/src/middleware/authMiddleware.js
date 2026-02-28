@@ -19,6 +19,22 @@ const authMiddleware = async (req, res, next) => {
         return res.status(401).json({ error: 'Unauthorized: No token provided' });
     }
 
+    // Is it a short-lived download token from the query string?
+    if (req.query.token && token === req.query.token) {
+        const tokenService = require('./downloadTokenService');
+        const dUserId = tokenService.validateDownloadToken(token);
+
+        if (!dUserId) {
+            return res.status(401).json({ error: 'Unauthorized: Invalid or expired download token' });
+        }
+
+        // A download token simply grants read-only access to the bound effectiveUserId
+        req.userId = dUserId;
+        req.effectiveUserId = dUserId;
+        req.isReadOnly = true;
+        return next();
+    }
+
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
 
@@ -28,8 +44,8 @@ const authMiddleware = async (req, res, next) => {
         }
 
         req.user = user;
-        req.userId = user.id;
-        req.effectiveUserId = user.sharedWithId || user.id;
+        req.userId = parseInt(user.id, 10);
+        req.effectiveUserId = parseInt(user.sharedWithId || user.id, 10);
         // A shared user who has readOnly=true cannot mutate data
         req.isReadOnly = !!(user.sharedWithId && user.readOnly);
 
