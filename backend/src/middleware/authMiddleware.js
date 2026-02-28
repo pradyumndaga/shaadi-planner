@@ -30,6 +30,8 @@ const authMiddleware = async (req, res, next) => {
         req.user = user;
         req.userId = user.id;
         req.effectiveUserId = user.sharedWithId || user.id;
+        // A shared user who has readOnly=true cannot mutate data
+        req.isReadOnly = !!(user.sharedWithId && user.readOnly);
 
         next();
     } catch (err) {

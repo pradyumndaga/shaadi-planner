@@ -3,7 +3,7 @@ import {
     DndContext,
     closestCenter,
     KeyboardSensor,
-    PointerSensor,
+    MouseSensor,
     TouchSensor,
     useSensor,
     useSensors,
@@ -19,6 +19,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { Bed, Users, X, FileDown, FileText, Search, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { API_BASE_URL, authFetch } from '../config';
+import { useAccess } from '../AccessContext';
 
 interface Guest {
     id: number;
@@ -67,14 +68,7 @@ function SortableGuest({ id, guest, onRemove, onMove, availableRooms, disabled, 
             style={style}
             {...attributes}
             {...listeners}
-            className={`group relative mb-2 ${compact ? 'p-3' : 'p-4'} rounded-lg border shadow-sm transition-all bg-white ${disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing hover:border-brand-400 hover:shadow-md'} ${currentGenderClass}`}
-            onPointerDown={(e) => {
-                // Ignore drag trigger on select elements
-                if ((e.target as HTMLElement).tagName.toLowerCase() === 'select') {
-                    // Do not call e.stopPropagation() here, as it breaks the select interaction on some touch devices,
-                    // but we do need a way to let the select native behavior happen.
-                }
-            }}
+            className={`group relative mb-2 ${compact ? 'p-3' : 'p-4'} rounded-lg border shadow-sm transition-shadow bg-white ${disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing hover:border-brand-400 hover:shadow-md'} ${currentGenderClass} touch-none`}
         >
             <div className={`w-full ${compact ? 'pr-2' : 'pr-5'}`}>
                 <p className={`font-medium ${compact ? 'text-xs' : 'text-sm'} text-gray-900 leading-tight break-words max-w-full`}>{guest.name}</p>
@@ -160,7 +154,8 @@ function Room({ room, guests, onRemoveGuest, onMoveGuest, availableRooms, onTogg
                     <div className="flex items-center gap-2 mt-1">
                         <button
                             onClick={() => onToggleExtraBed(room.id, room.hasExtraBed)}
-                            className={`text-[10px] px-2 py-0.5 rounded-full transition-colors border ${room.hasExtraBed ? 'bg-orange-100 text-orange-700 border-orange-200 shadow-sm' : 'bg-gray-100 text-gray-500 border-gray-200 opacity-60 hover:opacity-100'}`}
+                            disabled={!isEditing}
+                            className={`text-[10px] px-2 py-0.5 rounded-full transition-colors border ${!isEditing ? 'opacity-50 cursor-not-allowed ' : ''}${room.hasExtraBed ? 'bg-orange-100 text-orange-700 border-orange-200 shadow-sm' : 'bg-gray-100 text-gray-500 border-gray-200 opacity-60 hover:opacity-100'}`}
                         >
                             {room.hasExtraBed ? 'Extra Bed On (+1)' : 'Add Extra Bed?'}
                         </button>
@@ -180,7 +175,7 @@ function Room({ room, guests, onRemoveGuest, onMoveGuest, availableRooms, onTogg
                             key={g.id}
                             id={`guest-${g.id}`}
                             guest={g}
-                            onRemove={onRemoveGuest}
+                            onRemove={isEditing ? onRemoveGuest : undefined}
                             onMove={onMoveGuest}
                             availableRooms={availableRooms}
                             disabled={!isEditing}
@@ -204,6 +199,7 @@ export default function Rooms() {
     const [tempRooms, setTempRooms] = useState<RoomType[]>([]);
     const [tempUnassigned, setTempUnassigned] = useState<Guest[]>([]);
     const [deletedRoomIds, setDeletedRoomIds] = useState<Set<number>>(new Set());
+    const { isReadOnly } = useAccess();
     const [loading, setLoading] = useState(true);
     const [activeId, setActiveId] = useState<string | null>(null);
     const [queueSearch, setQueueSearch] = useState('');
@@ -235,11 +231,14 @@ export default function Rooms() {
         const capacityInput = window.prompt('What is the default capacity for these rooms?', '2');
         const capacity = parseInt(capacityInput || '2');
 
+        const seriesStartInput = window.prompt('Optional: What number should the room series start at? (e.g., 101 or A101)\nLeave blank to auto-continue existing numbers.');
+        const seriesStart = seriesStartInput ? seriesStartInput.trim() : null;
+
         try {
             const res = await authFetch(`${API_BASE_URL}/api/rooms/bulk`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ count, capacity, prefix: 'Room' })
+                body: JSON.stringify({ count, capacity, prefix: 'Room', seriesStart })
             });
             if (res.ok) {
                 toast.success(`Added ${count} rooms`);
@@ -326,7 +325,7 @@ export default function Rooms() {
     };
 
     const sensors = useSensors(
-        useSensor(PointerSensor, {
+        useSensor(MouseSensor, {
             activationConstraint: {
                 distance: 5,
             }
@@ -455,7 +454,7 @@ export default function Rooms() {
                     <p className="text-gray-500 mt-1">Drag and drop guests to allocate rooms</p>
                 </div>
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
-                    {!isEditing ? (
+                    {!isReadOnly && (!isEditing ? (
                         <button onClick={startEditing} className="btn-secondary flex items-center gap-2 border-brand-200 text-brand-700 bg-brand-50 hover:bg-brand-100">
                             <Edit size={18} />
                             Edit Layout
@@ -469,7 +468,7 @@ export default function Rooms() {
                                 Cancel
                             </button>
                         </>
-                    )}
+                    ))}
                     <button
                         onClick={() => window.open(`${API_BASE_URL}/api/rooms/export/excel?token=${localStorage.getItem('token')}`, '_blank')}
                         className="btn-secondary flex items-center gap-2"
@@ -488,6 +487,13 @@ export default function Rooms() {
                     </button>
                 </div>
             </header>
+
+            {isReadOnly && (
+                <div className="mb-6 flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-3">
+                    <Users size={18} className="shrink-0" />
+                    <p className="text-sm font-medium">You have <strong>View Only</strong> access to this wedding. You can view room assignments but cannot make changes.</p>
+                </div>
+            )}
 
             <DndContext
                 sensors={sensors}
@@ -595,31 +601,9 @@ export default function Rooms() {
                                         });
                                         return;
                                     }
-                                    try {
-                                        const targetRoom = rooms.find(r => r.id === id);
-                                        // If toggling OFF and room has overflow (e.g. 4 guests in cap 3)
-                                        if (current && targetRoom && targetRoom.guests.length > targetRoom.capacity) {
-                                            const overflowCount = targetRoom.guests.length - targetRoom.capacity;
-                                            const overflowGuests = targetRoom.guests.slice(-overflowCount);
 
-                                            await Promise.all(overflowGuests.map(g =>
-                                                authFetch(`${API_BASE_URL}/api/rooms/allocate`, {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ guestId: g.id, roomId: null })
-                                                })
-                                            ));
-                                        }
-
-                                        await authFetch(`${API_BASE_URL}/api/rooms/${id}`, {
-                                            method: 'PUT',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ hasExtraBed: !current })
-                                        });
-                                        fetchData(true);
-                                    } catch (err) {
-                                        console.error(err);
-                                    }
+                                    // if not editing, do nothing
+                                    return;
                                 }}
                                 onRemoveGuest={async (gId) => {
                                     if (isEditing) {
@@ -636,16 +620,9 @@ export default function Rooms() {
                                         setTempUnassigned(prev => [...prev.filter(g => g.id !== gId), { ...guestObj, roomId: undefined }]);
                                         return;
                                     }
-                                    try {
-                                        await authFetch(`${API_BASE_URL}/api/rooms/allocate`, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ guestId: gId, roomId: null })
-                                        });
-                                        fetchData(true);
-                                    } catch (err) {
-                                        console.error(err);
-                                    }
+
+                                    // if not editing, do nothing
+                                    return;
                                 }}
                             />
                         ))}

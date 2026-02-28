@@ -14,7 +14,10 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
     if (res.status === 401) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        const path = window.location.pathname;
+        if (path !== '/login' && path !== '/signup') {
+            window.location.href = '/login';
+        }
     }
 
     if (res.status >= 500) {

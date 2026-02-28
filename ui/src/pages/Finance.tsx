@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, PieChart, Plus, Receipt } from 'lucide-react';
 import { API_BASE_URL, authFetch } from '../config';
+import { useAccess } from '../AccessContext';
 
 interface FinanceRecord {
     id: number;
@@ -11,6 +12,7 @@ interface FinanceRecord {
 }
 
 export default function Finance() {
+    const { isReadOnly } = useAccess();
     const [expenses, setExpenses] = useState<FinanceRecord[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -65,6 +67,12 @@ export default function Finance() {
                     <p className="text-gray-500 mt-1">Track wedding budget and expenses</p>
                 </header>
 
+                {isReadOnly && (
+                    <div className="mb-6 flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-3">
+                        <Wallet size={18} className="shrink-0" />
+                        <p className="text-sm font-medium">You have <strong>View Only</strong> access. You can view expenses but cannot add new ones.</p>
+                    </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                     <div className="card bg-gradient-to-br from-brand-600 to-brand-800 text-white border-none shadow-lg">
                         <h3 className="font-medium text-brand-100 mb-1 flex items-center gap-2">
@@ -111,55 +119,57 @@ export default function Finance() {
             </div>
 
             {/* Sidebar Form */}
-            <div className="w-full md:w-80">
-                <div className="card sticky top-8">
-                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <Plus size={18} className="text-brand-600" />
-                        Add Expense
-                    </h3>
+            {!isReadOnly && (
+                <div className="w-full md:w-80">
+                    <div className="card sticky top-8">
+                        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <Plus size={18} className="text-brand-600" />
+                            Add Expense
+                        </h3>
 
-                    <form onSubmit={handleAddExpense} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                            <input
-                                type="text"
-                                required
-                                className="input-field"
-                                placeholder="e.g. Venue, Catering"
-                                value={category}
-                                onChange={e => setCategory(e.target.value)}
-                            />
-                        </div>
+                        <form onSubmit={handleAddExpense} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="input-field"
+                                    placeholder="e.g. Venue, Catering"
+                                    value={category}
+                                    onChange={e => setCategory(e.target.value)}
+                                />
+                            </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
-                            <input
-                                type="number"
-                                required
-                                className="input-field"
-                                placeholder="0.00"
-                                value={amount}
-                                onChange={e => setAmount(e.target.value)}
-                            />
-                        </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+                                <input
+                                    type="number"
+                                    required
+                                    className="input-field"
+                                    placeholder="0.00"
+                                    value={amount}
+                                    onChange={e => setAmount(e.target.value)}
+                                />
+                            </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-                            <textarea
-                                className="input-field"
-                                rows={3}
-                                placeholder="Details of expense..."
-                                value={description}
-                                onChange={e => setDescription(e.target.value)}
-                            ></textarea>
-                        </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                                <textarea
+                                    className="input-field"
+                                    rows={3}
+                                    placeholder="Details of expense..."
+                                    value={description}
+                                    onChange={e => setDescription(e.target.value)}
+                                ></textarea>
+                            </div>
 
-                        <button type="submit" className="btn-primary w-full shadow-md">
-                            Save Expense
-                        </button>
-                    </form>
+                            <button type="submit" className="btn-primary w-full shadow-md">
+                                Save Expense
+                            </button>
+                        </form>
+                    </div>
                 </div>
-            </div>
+            )}
 
         </div>
     );

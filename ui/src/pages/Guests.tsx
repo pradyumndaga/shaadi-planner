@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { UploadCloud, Plus, Search, Trash2, Edit, X, FileDown, UserCheck, UserMinus, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { API_BASE_URL, authFetch } from '../config';
+import { useAccess } from '../AccessContext';
 
 interface Guest {
     id: number;
@@ -23,6 +24,7 @@ interface Guest {
 }
 
 export default function Guests() {
+    const { isReadOnly } = useAccess();
     const [guests, setGuests] = useState<Guest[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [attendanceFilter, setAttendanceFilter] = useState('All'); // 'All', 'Tentative', 'Confirmed'
@@ -181,20 +183,52 @@ export default function Guests() {
         setIsModalOpen(true);
     };
 
+    const formatLocalDateForInput = (dateString?: string) => {
+        if (!dateString) return '';
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return '';
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
     const openEditModal = (guest: Guest) => {
         setEditingGuest(guest);
-        setLinkedArrivals([]);
-        setLinkedDepartures([]);
+
+        // Infer linkages by checking if other guests share the same exact travel details
+        const hasArrival = guest.arrivalTime || guest.arrivalFlightNo || guest.arrivalPnr;
+        const linkedArrivalsFound = hasArrival ? guests.filter(g =>
+            g.id !== guest.id &&
+            !g.isTentative &&
+            (g.arrivalTime === guest.arrivalTime) &&
+            ((g.arrivalFlightNo || '') === (guest.arrivalFlightNo || '')) &&
+            ((g.arrivalPnr || '') === (guest.arrivalPnr || ''))
+        ).map(g => g.id) : [];
+
+        const hasDeparture = guest.departureTime || guest.departureFlightNo || guest.departurePnr;
+        const linkedDeparturesFound = hasDeparture ? guests.filter(g =>
+            g.id !== guest.id &&
+            !g.isTentative &&
+            (g.departureTime === guest.departureTime) &&
+            ((g.departureFlightNo || '') === (guest.departureFlightNo || '')) &&
+            ((g.departurePnr || '') === (guest.departurePnr || ''))
+        ).map(g => g.id) : [];
+
+        setLinkedArrivals(linkedArrivalsFound);
+        setLinkedDepartures(linkedDeparturesFound);
         setArrivalSearch('');
         setDepartureSearch('');
         setFormData({
             name: guest.name,
             mobile: guest.mobile,
             gender: guest.gender,
-            arrivalTime: guest.arrivalTime ? new Date(guest.arrivalTime).toISOString().slice(0, 16) : '',
+            arrivalTime: formatLocalDateForInput(guest.arrivalTime),
             arrivalFlightNo: guest.arrivalFlightNo || '',
             arrivalPnr: guest.arrivalPnr || '',
-            departureTime: guest.departureTime ? new Date(guest.departureTime).toISOString().slice(0, 16) : '',
+            departureTime: formatLocalDateForInput(guest.departureTime),
             departureFlightNo: guest.departureFlightNo || '',
             departurePnr: guest.departurePnr || '',
             isTentative: guest.isTentative || false
@@ -284,20 +318,31 @@ export default function Guests() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept=".xlsx,.xls,.csv"
-                        onChange={handleFileUpload}
-                    />
-                    <button
-                        onClick={() => { if (fileInputRef.current) (fileInputRef.current as HTMLInputElement).click(); }}
-                        className="btn-secondary"
-                    >
-                        <UploadCloud size={18} className="mr-2" />
-                        Upload Excel
-                    </button>
+                    {!isReadOnly && (
+                        <>
+                            <button
+                                onClick={() => window.open(`${API_BASE_URL}/api/guests/template?token=${localStorage.getItem('token')}`, '_blank')}
+                                className="btn-secondary"
+                            >
+                                <FileDown size={18} className="mr-2" />
+                                Download Template
+                            </button>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept=".xlsx,.xls,.csv"
+                                onChange={handleFileUpload}
+                            />
+                            <button
+                                onClick={() => { if (fileInputRef.current) (fileInputRef.current as HTMLInputElement).click(); }}
+                                className="btn-secondary whitespace-nowrap"
+                            >
+                                <UploadCloud size={18} className="mr-2" />
+                                Upload Excel
+                            </button>
+                        </>
+                    )}
 
                     <button
                         onClick={() => window.open(`${API_BASE_URL}/api/guests/export/all/pdf?token=${localStorage.getItem('token')}&attendance=${attendanceFilter}`, '_blank')}
@@ -307,21 +352,32 @@ export default function Guests() {
                         PDF Export
                     </button>
 
-                    <button className="btn-primary" onClick={openCreateModal}>
-                        <Plus size={18} className="mr-2" />
-                        Add Guest
-                    </button>
+                    {!isReadOnly && (
+                        <button className="btn-primary flex-shrink-0" onClick={openCreateModal}>
+                            <Plus size={18} className="mr-2" />
+                            Add Guest
+                        </button>
+                    )}
 
-                    <button
-                        className={`btn-secondary flex items-center gap-2 ${selectedIds.size === 0 ? 'opacity-50 cursor-not-allowed' : 'text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300'}`}
-                        onClick={handleBulkDelete}
-                        disabled={selectedIds.size === 0}
-                    >
-                        <Trash2 size={18} />
-                        Delete {selectedIds.size > 0 ? `Selected (${selectedIds.size})` : 'Selected'}
-                    </button>
+                    {!isReadOnly && (
+                        <button
+                            className={`btn-secondary flex items-center gap-2 ${selectedIds.size === 0 ? 'opacity-50 cursor-not-allowed' : 'text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300'}`}
+                            onClick={handleBulkDelete}
+                            disabled={selectedIds.size === 0}
+                        >
+                            <Trash2 size={18} />
+                            Delete {selectedIds.size > 0 ? `Selected (${selectedIds.size})` : 'Selected'}
+                        </button>
+                    )}
                 </div>
             </header>
+
+            {isReadOnly && (
+                <div className="mb-6 flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-3">
+                    <UserCheck size={18} className="shrink-0" />
+                    <p className="text-sm font-medium">You have <strong>View Only</strong> access to this wedding. Contact the admin to request edit permissions.</p>
+                </div>
+            )}
 
             {/* Metrics Summary & Filters */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -444,8 +500,9 @@ export default function Guests() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                                             <button
-                                                onClick={() => toggleTentativeStatus(guest)}
-                                                className={`px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 flex items-center gap-1 ${guest.isTentative
+                                                onClick={() => !isReadOnly && toggleTentativeStatus(guest)}
+                                                disabled={isReadOnly}
+                                                className={`px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 flex items-center gap-1 ${isReadOnly ? 'opacity-50 cursor-not-allowed ' : ''}${guest.isTentative
                                                     ? 'bg-orange-100 border border-orange-300 text-orange-700 hover:bg-orange-200 focus:ring-orange-500'
                                                     : 'bg-emerald-100 border border-emerald-300 text-emerald-700 hover:bg-emerald-200 focus:ring-emerald-500'
                                                     }`}
@@ -465,8 +522,12 @@ export default function Guests() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onClick={() => openEditModal(guest)} className="text-indigo-600 hover:text-indigo-900 mr-3"><Edit size={16} /></button>
-                                            <button onClick={() => deleteGuest(guest.id)} className="text-red-600 hover:text-red-900"><Trash2 size={16} /></button>
+                                            {!isReadOnly && (
+                                                <>
+                                                    <button onClick={() => openEditModal(guest)} className="text-indigo-600 hover:text-indigo-900 mr-3"><Edit size={16} /></button>
+                                                    <button onClick={() => deleteGuest(guest.id)} className="text-red-600 hover:text-red-900"><Trash2 size={16} /></button>
+                                                </>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

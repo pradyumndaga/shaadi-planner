@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Bed, CreditCard, Banknote, UserCheck, UserMinus, Share2, Users, Link as LinkIcon, Unlink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bed, CreditCard, Banknote, UserCheck, UserMinus, Share2, Users, Link as LinkIcon, Unlink, MessageSquareDashed, ArrowRight, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { API_BASE_URL, authFetch } from '../config';
+import { useAccess } from '../AccessContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface DashboardStats {
@@ -13,6 +15,7 @@ interface DashboardStats {
     totalCapacity: number;
     remainingCapacity: number;
     totalSpent: number;
+    unnotifiedGuests: number;
 }
 
 export default function Dashboard() {
@@ -24,9 +27,12 @@ export default function Dashboard() {
         totalRooms: 0,
         totalCapacity: 0,
         remainingCapacity: 0,
-        totalSpent: 0
+        totalSpent: 0,
+        unnotifiedGuests: 0
     });
 
+    const navigate = useNavigate();
+    const { } = useAccess();
     const [loading, setLoading] = useState(true);
     const [accessData, setAccessData] = useState<{
         shareCode: string | null;
@@ -37,6 +43,7 @@ export default function Dashboard() {
     const [isJoining, setIsJoining] = useState(false);
 
     useEffect(() => {
+        setLoading(true);
         Promise.all([
             authFetch(`${API_BASE_URL}/api/stats`).then(res => res.json()),
             authFetch(`${API_BASE_URL}/api/user/share-code`).then(res => res.json())
@@ -169,6 +176,41 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                {/* Pending Notifications Summary Card */}
+                {stats.unnotifiedGuests > 0 && (
+                    <div className="card lg:col-span-2 border-orange-200 bg-gradient-to-br from-orange-50/50 to-white overflow-hidden relative group">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-2">
+                            <div className="flex items-center gap-5">
+                                <div className="p-4 bg-orange-100 rounded-2xl text-orange-600 shadow-sm transition-transform group-hover:scale-110 duration-300">
+                                    <MessageSquareDashed size={32} />
+                                </div>
+                                <div className="text-center sm:text-left">
+                                    <h3 className="text-xl font-bold text-gray-900 font-display">
+                                        Pending Room Notifications
+                                    </h3>
+                                    <p className="text-gray-500 mt-1 max-w-sm">
+                                        You have <span className="font-bold text-orange-600 underline decoration-orange-200 underline-offset-4">{stats.unnotifiedGuests} guests</span> waiting to be notified about their room assignments.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => navigate('/notify', { state: { filter: 'unnotified' } })}
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold shadow-lg shadow-orange-200 transition-all hover:translate-x-1 active:scale-95 whitespace-nowrap"
+                            >
+                                <Send size={18} />
+                                Go to Notify
+                                <ArrowRight size={18} />
+                            </button>
+                        </div>
+
+                        {/* Decorative background element */}
+                        <div className="absolute -right-8 -bottom-8 opacity-[0.03] text-orange-600 group-hover:opacity-[0.06] transition-opacity duration-700 pointer-events-none">
+                            <MessageSquareDashed size={160} />
+                        </div>
+                    </div>
+                )}
+
                 {/* Attendance Chart */}
                 <div className="card">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 font-display">Attendance Distribution</h3>

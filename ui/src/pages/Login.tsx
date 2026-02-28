@@ -48,7 +48,7 @@ export default function Login() {
                     <div className="absolute bottom-0 right-0 w-96 h-96 bg-white blur-3xl rounded-full translate-x-1/2 translate-y-1/2"></div>
                 </div>
                 <div className="relative z-10 max-w-md">
-                    <h1 className="text-5xl font-display font-bold mb-6">ShaadiPlanner</h1>
+                    <h1 className="text-5xl font-display font-bold mb-6">ShaadiDesk</h1>
                     <p className="text-xl text-brand-100 leading-relaxed italic">
                         "Organizing the most beautiful moments of your life, piece by piece."
                     </p>
@@ -64,7 +64,7 @@ export default function Login() {
             <div className="flex-1 flex items-center justify-center p-8">
                 <div className="w-full max-w-sm animate-fade-in">
                     <div className="md:hidden mb-8">
-                        <h1 className="text-3xl font-display font-bold text-brand-600">ShaadiPlanner</h1>
+                        <h1 className="text-3xl font-display font-bold text-brand-600">ShaadiDesk</h1>
                     </div>
 
                     <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>

@@ -5,36 +5,234 @@ const multer = require('multer');
 const xlsx = require('xlsx');
 const PDFDocument = require('pdfkit');
 const path = require('path');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const qrcode = require('qrcode');
 
 const prisma = new PrismaClient();
 const upload = multer({ dest: 'uploads/' });
+
+// --- WhatsApp Native Client Initialization (Multi-Tenant) ---
+const fs = require('fs');
+
+const waClients = new Map(); // userId -> { client, status, qrCode }
+
+function getWaState(userId) {
+    if (!waClients.has(userId)) {
+        waClients.set(userId, { client: null, status: 'disconnected', qrCode: null });
+    }
+    return waClients.get(userId);
+}
+
+function initWhatsApp(userId) {
+    const state = getWaState(userId);
+    if (state.client || state.status === 'starting') return;
+
+    console.log(`[WHATSAPP] Initializing native client for user ${userId}...`);
+    state.status = 'starting';
+
+    try {
+        const client = new Client({
+            authStrategy: new LocalAuth({
+                clientId: `user-${userId}`,
+                dataPath: './.wwebjs_auth'
+            }),
+            puppeteer: {
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+                headless: true,
+            }
+        });
+
+        state.client = client;
+
+        client.on('qr', (qr) => {
+            console.log(`[WHATSAPP] QR Code received for user ${userId}`);
+            state.qrCode = qr;
+            state.status = 'qr_ready';
+        });
+
+        client.on('authenticated', () => {
+            console.log(`[WHATSAPP] User ${userId} authenticated successfully!`);
+            state.qrCode = null;
+            state.status = 'authenticated';
+        });
+
+        client.on('ready', () => {
+            console.log(`[WHATSAPP] User ${userId} client is ready!`);
+            state.status = 'ready';
+        });
+
+        client.on('disconnected', (reason) => {
+            console.log(`[WHATSAPP] User ${userId} client disconnected:`, reason);
+            state.status = 'disconnected';
+            state.qrCode = null;
+            state.client = null;
+        });
+
+        client.on('auth_failure', (msg) => {
+            console.error(`[WHATSAPP] User ${userId} auth failure:`, msg);
+            state.status = 'failed';
+            state.client = null;
+        });
+
+        client.initialize().catch(err => {
+            console.error(`[WHATSAPP] User ${userId} init error:`, err);
+            state.status = 'failed';
+            state.client = null;
+        });
+    } catch (err) {
+        console.error(`[WHATSAPP] User ${userId} setup error:`, err);
+        state.status = 'failed';
+        state.client = null;
+    }
+}
+
+// Start WhatsApp headless browser on server boot for existing sessions
+function restoreSessions() {
+    console.log('[WHATSAPP] Restoring sessions from disk...');
+    const authPath = './.wwebjs_auth';
+    if (!fs.existsSync(authPath)) return;
+
+    const folders = fs.readdirSync(authPath);
+    for (const folder of folders) {
+        if (folder.startsWith('session-user-')) {
+            const userId = parseInt(folder.replace('session-user-', ''), 10);
+            if (!isNaN(userId)) {
+                initWhatsApp(userId);
+            }
+        }
+    }
+}
+
+restoreSessions();
+// ----------------------------------------------
+
 
 router.use((req, res, next) => {
     console.log(`Router HIT: ${req.method} ${req.url}`);
     next();
 });
 
+// Middleware: reject mutations from read-only shared users
+const requireWriteAccess = (req, res, next) => {
+    if (req.isReadOnly) {
+        return res.status(403).json({ error: 'You have read-only access to this wedding. Ask the admin for write access.' });
+    }
+    next();
+};
+
 // USER / ACCESS SHARE
 router.get('/user/share-code', async (req, res) => {
     try {
-        const user = await prisma.user.findUnique({ where: { id: req.userId }, include: { sharedUsers: { select: { mobile: true } }, primaryUser: { select: { mobile: true } } } });
+        const user = await prisma.user.findUnique({
+            where: { id: req.userId },
+            include: {
+                sharedUsers: { select: { id: true, mobile: true, readOnly: true } },
+                primaryUser: { select: { mobile: true } }
+            }
+        });
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         let code = user.shareCode;
         if (!code) {
-            // Generate a 6-character alphanumeric code
             code = Math.random().toString(36).substring(2, 8).toUpperCase();
             await prisma.user.update({
                 where: { id: req.userId },
                 data: { shareCode: code }
             });
         }
-        res.json({ shareCode: code, sharedUsers: user.sharedUsers, primaryUser: user.primaryUser });
+        // Also return current user's own readOnly status (for shared users viewing this)
+        const iAmShared = !!user.sharedWithId;
+        res.json({
+            shareCode: iAmShared ? null : code,
+            sharedUsers: iAmShared ? [] : user.sharedUsers,
+            primaryUser: user.primaryUser,
+            isReadOnly: iAmShared ? user.readOnly : false
+        });
     } catch (err) {
         console.error('Error fetching share code:', err);
         res.status(500).json({ error: err.message });
     }
 });
+
+// Admin toggles access level for a shared user
+router.put('/user/shared-access/:sharedUserId', async (req, res) => {
+    try {
+        const { readOnly } = req.body;
+        const sharedUserId = parseInt(req.params.sharedUserId);
+        // Verify the target user is actually shared with the requesting user
+        const targetUser = await prisma.user.findUnique({ where: { id: sharedUserId } });
+        if (!targetUser || targetUser.sharedWithId !== req.userId) {
+            return res.status(403).json({ error: 'You do not have permission to modify this user.' });
+        }
+        const updated = await prisma.user.update({
+            where: { id: sharedUserId },
+            data: { readOnly: !!readOnly }
+        });
+        res.json({ message: `Access updated`, readOnly: updated.readOnly });
+    } catch (err) {
+        console.error('Error updating shared access:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Middleware: allow only the master/admin user (not shared users)
+const requireMasterUser = (req, res, next) => {
+    if (req.userId !== req.effectiveUserId) {
+        return res.status(403).json({ error: 'Only the account owner can manage credentials.' });
+    }
+    next();
+};
+
+// ================= NATIVE WHATSAPP ENDPOINTS =================
+
+// GET WhatsApp Connection Status
+router.get('/user/whatsapp-status', requireMasterUser, (req, res) => {
+    const userId = req.effectiveUserId;
+    const state = getWaState(userId);
+
+    // Lazy initialize if not started
+    if (!state.client && state.status !== 'starting' && state.status !== 'failed') {
+        initWhatsApp(userId);
+    }
+
+    res.json({ status: getWaState(userId).status });
+});
+
+// GET WhatsApp QR Code (base64 data URI)
+router.get('/user/whatsapp-qr', requireMasterUser, async (req, res) => {
+    const userId = req.effectiveUserId;
+    const state = getWaState(userId);
+
+    if (state.status !== 'qr_ready' || !state.qrCode) {
+        return res.status(400).json({ error: 'QR code not available or already authenticated.' });
+    }
+    try {
+        const qrDataUrl = await qrcode.toDataURL(state.qrCode);
+        res.json({ qr: qrDataUrl });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to generate QR image' });
+    }
+});
+
+// POST Logout/Disconnect WhatsApp
+router.post('/user/whatsapp-logout', requireMasterUser, async (req, res) => {
+    const userId = req.effectiveUserId;
+    const state = getWaState(userId);
+
+    try {
+        if (state.client) {
+            await state.client.logout();
+        }
+        state.status = 'disconnected';
+        state.qrCode = null;
+        state.client = null;
+        res.json({ message: 'WhatsApp disconnected successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==============================================================
 
 router.post('/user/join', async (req, res) => {
     try {
@@ -71,7 +269,7 @@ router.post('/user/join', async (req, res) => {
 });
 
 // DASHBOARD STATS
-router.post('/rooms/batch-allocate', async (req, res) => {
+router.post('/rooms/batch-allocate', requireWriteAccess, async (req, res) => {
     console.log('HIT: /rooms/batch-allocate');
     try {
         const { allocations } = req.body;
@@ -80,7 +278,10 @@ router.post('/rooms/batch-allocate', async (req, res) => {
         const updates = allocations.map(a =>
             prisma.guest.update({
                 where: { id: parseInt(a.guestId), userId: req.effectiveUserId },
-                data: { roomId: a.roomId ? parseInt(a.roomId) : null }
+                data: {
+                    roomId: a.roomId ? parseInt(a.roomId) : null,
+                    isNotified: false // Reset notification status on room change
+                }
             })
         );
         await prisma.$transaction(updates);
@@ -161,34 +362,76 @@ router.get('/guests', async (req, res) => {
     }
 });
 
-router.post('/guests/notify', async (req, res) => {
+router.post('/guests/notify', requireWriteAccess, async (req, res) => {
     try {
-        const { guestIds } = req.body;
+        const { guestIds, message, weddingDate, venue, imageBase64 } = req.body;
         if (!Array.isArray(guestIds)) return res.status(400).json({ error: 'guestIds must be an array' });
+        if (!message || !message.trim()) return res.status(400).json({ error: 'message is required' });
+
+        // Ensure WhatsApp Client is ready
+        const state = getWaState(req.effectiveUserId);
+        if (state.status !== 'ready' || !state.client) {
+            return res.status(501).json({ error: 'WhatsApp is not connected. Go to Settings → WhatsApp Configuration and link your device first.' });
+        }
+        const waClient = state.client;
 
         const guests = await prisma.guest.findMany({
             where: { id: { in: guestIds }, userId: req.effectiveUserId },
             include: { room: true }
         });
 
+        const results = [];
         for (const guest of guests) {
-            if (guest.room) {
-                console.log(`[SIMULATED SMS] To: ${guest.mobile} | Message: Dear ${guest.name}, your room for the wedding has been allocated: ${guest.room.name}. We look forward to seeing you!`);
+            const body = message
+                .replace(/\{\{name\}\}/gi, guest.name || '')
+                .replace(/\{\{room\}\}/gi, guest.room?.name || 'TBD')
+                .replace(/\{\{mobile\}\}/gi, guest.mobile || '')
+                .replace(/\{\{date\}\}/gi, weddingDate || '')
+                .replace(/\{\{venue\}\}/gi, venue || '');
+
+            // Format number for whatsapp-web.js (digits only + @c.us)
+            const cleanNumber = guest.mobile.replace(/\D/g, '');
+            // Simple validation, assuming IN country code (91) if 10 digits
+            let formattedNumber = cleanNumber;
+            if (cleanNumber.length === 10) formattedNumber = '91' + cleanNumber;
+            const to = `${formattedNumber}@c.us`;
+
+            console.log(`[NATIVE WA] Attempting to send message to guest ${guest.id} (${guest.name})`);
+
+            try {
+                if (imageBase64) {
+                    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+                    const media = new MessageMedia('image/png', base64Data);
+                    await waClient.sendMessage(to, media, { caption: body });
+                } else {
+                    await waClient.sendMessage(to, body);
+                }
+                console.log(`[NATIVE WA] Successfully sent to ${to}`);
+                results.push({ id: guest.id, name: guest.name, status: 'sent' });
+                // Small delay to prevent spam limits
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            } catch (e) {
+                console.error(`[NATIVE WA] ERROR sending to ${to}:`, e);
+                results.push({ id: guest.id, name: guest.name, status: 'failed', error: e.message });
             }
         }
 
-        await prisma.guest.updateMany({
-            where: { id: { in: guestIds }, userId: req.effectiveUserId },
-            data: { isNotified: true }
-        });
+        const sentIds = results.filter(r => r.status === 'sent').map(r => r.id);
+        if (sentIds.length > 0) {
+            await prisma.guest.updateMany({
+                where: { id: { in: sentIds }, userId: req.effectiveUserId },
+                data: { isNotified: true }
+            });
+        }
 
-        res.json({ message: `Successfully notified ${guests.length} guests` });
+        res.json({ results, sent: sentIds.length, failed: results.length - sentIds.length });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-router.post('/guests', async (req, res) => {
+
+router.post('/guests', requireWriteAccess, async (req, res) => {
     try {
         const { linkedArrivalGuestIds, linkedDepartureGuestIds, ...otherData } = req.body;
         const data = { ...otherData };
@@ -234,7 +477,7 @@ router.post('/guests', async (req, res) => {
     }
 });
 
-router.put('/guests/:id', async (req, res) => {
+router.put('/guests/:id', requireWriteAccess, async (req, res) => {
     try {
         const { linkedArrivalGuestIds, linkedDepartureGuestIds, ...otherData } = req.body;
         const data = { ...otherData };
@@ -298,7 +541,7 @@ router.put('/guests/:id', async (req, res) => {
     }
 });
 
-router.delete('/guests/:id', async (req, res) => {
+router.delete('/guests/:id', requireWriteAccess, async (req, res) => {
     try {
         await prisma.guest.delete({
             where: {
@@ -312,7 +555,7 @@ router.delete('/guests/:id', async (req, res) => {
     }
 });
 
-router.delete('/guests', async (req, res) => {
+router.delete('/guests', requireWriteAccess, async (req, res) => {
     try {
         await prisma.guest.deleteMany({ where: { userId: req.effectiveUserId } });
         res.json({ message: 'All guests deleted' });
@@ -321,7 +564,7 @@ router.delete('/guests', async (req, res) => {
     }
 });
 
-router.post('/guests/bulk-delete', async (req, res) => {
+router.post('/guests/bulk-delete', requireWriteAccess, async (req, res) => {
     try {
         const { ids } = req.body;
         if (!Array.isArray(ids)) {
@@ -341,7 +584,40 @@ router.post('/guests/bulk-delete', async (req, res) => {
     }
 });
 
-router.post('/guests/upload', upload.single('file'), async (req, res) => {
+router.get('/guests/template', requireWriteAccess, (req, res) => {
+    try {
+        const headers = [
+            'Name',
+            'Mobile',
+            'Gender (Male/Female/Other)',
+            'Tentative (Yes/No)',
+            'Arrival Time (YYYY-MM-DD HH:MM)',
+            'Arrival Flight/Train',
+            'Arrival PNR',
+            'Departure Time (YYYY-MM-DD HH:MM)',
+            'Departure Flight/Train',
+            'Departure PNR'
+        ];
+
+        const wb = xlsx.utils.book_new();
+        const ws = xlsx.utils.aoa_to_sheet([headers, ['Example Guest', '9876543210', 'Male', 'No', '2025-03-15 14:00', '6E 123', 'PNR123', '', '', '']]);
+
+        // Auto-size columns roughly
+        ws['!cols'] = headers.map(h => ({ wch: h.length + 5 }));
+
+        xlsx.utils.book_append_sheet(wb, ws, 'Template');
+
+        const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Disposition', 'attachment; filename="Guest_List_Template.xlsx"');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/guests/upload', requireWriteAccess, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
@@ -349,32 +625,77 @@ router.post('/guests/upload', upload.single('file'), async (req, res) => {
         const sheetName = workbook.SheetNames[0];
         const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' }); // Get raw array of objects
 
+        if (data.length === 0) return res.status(400).json({ error: 'The uploaded file is empty.' });
+
+        // Strict column validation based on the first row
+        const firstRowKeys = Object.keys(data[0]).map(k => k.trim().toLowerCase());
+        const hasRequiredCols = firstRowKeys.some(k => k.includes('name')) && firstRowKeys.some(k => k.includes('mobile') || k.includes('phone'));
+
+        if (!hasRequiredCols) {
+            return res.status(400).json({
+                error: 'Invalid file format. Ensure you have "Name" and "Mobile" columns. Please download and use the provided template.'
+            });
+        }
+
         const guests = [];
         for (const row of data) {
-            let rawName = row.Name || row.name || row['Name '] || row[' Name'] || '';
-            let rawPhone = row.Phone || row.phone || row.Mobile || row.mobile || row['Phone '] || row[' Phone'] || '';
-            let rawGender = row.Gender || row.gender || row.Sex || row.sex || row['Gender '] || row[' Gender'] || '';
+            // Helper to match column names flexibly just in case they modified headers slightly
+            const getVal = (possibleNames) => {
+                for (const key of Object.keys(row)) {
+                    const normKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    if (possibleNames.some(pn => normKey.includes(pn))) {
+                        return row[key] ? String(row[key]).trim() : '';
+                    }
+                }
+                return '';
+            };
 
-            rawName = String(rawName).trim();
-            rawPhone = String(rawPhone).trim();
-            rawGender = String(rawGender).trim();
+            const rawName = getVal(['name']);
+            const rawPhone = getVal(['mobile', 'phone']);
+            const rawGender = getVal(['gender', 'sex']);
+            const rawTentative = getVal(['tentative']);
+
+            const arrTime = getVal(['arrivaltime', 'arrtime']);
+            const arrFlight = getVal(['arrivalflight', 'arrivaltrain', 'arrflight']);
+            const arrPnr = getVal(['arrivalpnr', 'arrpnr']);
+
+            const depTime = getVal(['departuretime', 'deptime']);
+            const depFlight = getVal(['departureflight', 'departuretrain', 'depflight']);
+            const depPnr = getVal(['departurepnr', 'deppnr']);
+
+            if (!rawName) continue; // Skip rows without names
 
             // Normalize gender
             let finalGender = 'Other';
             if (/^m/i.test(rawGender)) finalGender = 'Male';
             else if (/^f/i.test(rawGender)) finalGender = 'Female';
 
-            if (rawName && rawName !== '') {
-                guests.push({
-                    name: rawName,
-                    mobile: rawPhone,
-                    gender: finalGender,
-                    userId: req.effectiveUserId // Scoped
-                });
-            }
+            // Parse Tentative
+            const isTentative = /^y/i.test(rawTentative); // 'Yes', 'Y', 'true' etc.
+
+            // Parse Dates safely (ensure valid ISO string if provided, else null)
+            const parseDate = (dStr) => {
+                if (!dStr) return null;
+                const d = new Date(dStr);
+                return isNaN(d.getTime()) ? null : d.toISOString();
+            };
+
+            guests.push({
+                name: rawName,
+                mobile: rawPhone,
+                gender: finalGender,
+                isTentative: isTentative,
+                arrivalTime: parseDate(arrTime),
+                arrivalFlightNo: arrFlight,
+                arrivalPnr: arrPnr,
+                departureTime: parseDate(depTime),
+                departureFlightNo: depFlight,
+                departurePnr: depPnr,
+                userId: req.effectiveUserId
+            });
         }
 
-        if (guests.length === 0) return res.status(400).json({ error: 'No valid guest data found in file. Make sure your columns are labeled Name and Phone.' });
+        if (guests.length === 0) return res.status(400).json({ error: 'No valid guest data found in file.' });
 
         const created = await prisma.guest.createMany({
             data: guests
@@ -400,7 +721,7 @@ router.get('/rooms', async (req, res) => {
     }
 });
 
-router.post('/rooms', async (req, res) => {
+router.post('/rooms', requireWriteAccess, async (req, res) => {
     try {
         const newRoom = await prisma.room.create({
             data: {
@@ -415,17 +736,46 @@ router.post('/rooms', async (req, res) => {
     }
 });
 
-router.post('/rooms/bulk', async (req, res) => {
+router.post('/rooms/bulk', requireWriteAccess, async (req, res) => {
     try {
         const count = parseInt(req.body.count || 0);
         const capacity = parseInt(req.body.capacity || 2);
         const prefix = req.body.prefix || 'Room';
+        const rawSeriesStart = req.body.seriesStart;
 
         const currentRooms = await prisma.room.count({ where: { userId: req.effectiveUserId } });
+
+        let seriesPrefix = '';
+        let seriesStartNum = NaN;
+        let padLength = 0;
+
+        if (rawSeriesStart) {
+            const match = String(rawSeriesStart).trim().match(/^(.*?)(\d+)$/);
+            if (match) {
+                seriesPrefix = match[1];
+                seriesStartNum = parseInt(match[2], 10);
+                padLength = match[2].length;
+            } else if (!isNaN(parseInt(rawSeriesStart, 10))) {
+                seriesStartNum = parseInt(rawSeriesStart, 10);
+            }
+        }
+
+        const useSeries = !isNaN(seriesStartNum);
+
         const roomsToCreate = [];
         for (let i = 1; i <= count; i++) {
+            let roomName;
+            if (useSeries) {
+                const num = seriesStartNum + (i - 1);
+                // format with leading zeros if they provided them
+                const numStr = padLength > 0 ? String(num).padStart(padLength, '0') : String(num);
+                roomName = `${prefix} ${seriesPrefix}${numStr}`.trim();
+            } else {
+                roomName = `${prefix} ${currentRooms + i}`;
+            }
+
             roomsToCreate.push({
-                name: `${prefix} ${currentRooms + i}`,
+                name: roomName,
                 capacity: capacity,
                 userId: req.effectiveUserId
             });
@@ -440,7 +790,7 @@ router.post('/rooms/bulk', async (req, res) => {
 
 // DELETED DUPLICATE ROOM PUT ROUTE
 
-router.put('/rooms/:id', async (req, res) => {
+router.put('/rooms/:id', requireWriteAccess, async (req, res) => {
     try {
         const { hasExtraBed, capacity, name } = req.body;
         const data = {};
@@ -461,7 +811,7 @@ router.put('/rooms/:id', async (req, res) => {
     }
 });
 
-router.delete('/rooms/:id', async (req, res) => {
+router.delete('/rooms/:id', requireWriteAccess, async (req, res) => {
     try {
         await prisma.room.delete({
             where: {
@@ -476,7 +826,7 @@ router.delete('/rooms/:id', async (req, res) => {
 });
 
 // ALLOCATE GUEST TO ROOM
-router.post('/rooms/allocate', async (req, res) => {
+router.post('/rooms/allocate', requireWriteAccess, async (req, res) => {
     try {
         const { guestId, roomId } = req.body;
 
@@ -654,7 +1004,7 @@ router.get('/guests/export/travel/pdf', async (req, res) => {
         const guests = await prisma.guest.findMany({ where: { userId: req.effectiveUserId } });
         const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
-        const brandColor = '#4f46e5';
+        const brandColor = '#9f211f';
         const grayColor = '#6b7280';
 
         res.setHeader('Content-disposition', 'attachment; filename="Travel_Report.pdf"');
@@ -662,14 +1012,14 @@ router.get('/guests/export/travel/pdf', async (req, res) => {
 
         doc.pipe(res);
         // HEADER
-        const logoPath = path.join(__dirname, '../assets/wedding_sticker.png');
+        const logoPath = path.join(__dirname, '../../logo.png');
         try {
             doc.image(logoPath, 460, 45, { width: 80 });
         } catch (e) {
             console.error('Logo not found at:', logoPath);
         }
 
-        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('ShaadiPlanner', { align: 'left' });
+        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('ShaadiDesk', { align: 'left' });
         doc.fillColor(grayColor).fontSize(10).font('Helvetica').text(`Travel Coordination Report • Generated ${new Date().toLocaleDateString()}`, { align: 'left' });
         doc.moveDown(1.5);
 
@@ -786,7 +1136,7 @@ router.get('/rooms/export/pdf', async (req, res) => {
         });
 
         const doc = new PDFDocument({ margin: 50, size: 'A4' });
-        const brandColor = '#4f46e5';
+        const brandColor = '#9f211f';
         const grayColor = '#6b7280';
 
         res.setHeader('Content-disposition', `attachment; filename="Room_Layout.pdf"`);
@@ -795,14 +1145,14 @@ router.get('/rooms/export/pdf', async (req, res) => {
         doc.pipe(res);
 
         // HEADER
-        const logoPath = path.join(__dirname, '../assets/wedding_sticker.png');
+        const logoPath = path.join(__dirname, '../../logo.png');
         try {
             doc.image(logoPath, 460, 45, { width: 80 });
         } catch (e) {
             console.error('Logo not found at:', logoPath);
         }
 
-        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('ShaadiPlanner', { align: 'left' });
+        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('ShaadiDesk', { align: 'left' });
         doc.fillColor(grayColor).fontSize(10).font('Helvetica').text(`Room Assignment Report • Generated ${new Date().toLocaleDateString()}`, { align: 'left' });
         doc.moveDown(1.5);
 
@@ -898,7 +1248,7 @@ router.get('/guests/export/all/pdf', async (req, res) => {
         });
 
         const doc = new PDFDocument({ margin: 50, size: 'A4' });
-        const brandColor = '#4f46e5';
+        const brandColor = '#9f211f';
         const grayColor = '#6b7280';
 
         res.setHeader('Content-disposition', 'attachment; filename="Guest_List.pdf"');
@@ -907,14 +1257,14 @@ router.get('/guests/export/all/pdf', async (req, res) => {
         doc.pipe(res);
 
         // HEADER
-        const logoPath = path.join(__dirname, '../assets/wedding_sticker.png');
+        const logoPath = path.join(__dirname, '../../logo.png');
         try {
             doc.image(logoPath, 460, 45, { width: 80 });
         } catch (e) {
             console.error('Logo not found');
         }
 
-        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('ShaadiPlanner', { align: 'left' });
+        doc.fillColor(brandColor).fontSize(24).font('Helvetica-Bold').text('ShaadiDesk', { align: 'left' });
         doc.fillColor(grayColor).fontSize(10).font('Helvetica').text(`Master Guest List • Generated ${new Date().toLocaleDateString()}`, { align: 'left' });
         doc.moveDown(1.5);
 

@@ -14,8 +14,14 @@ model User {
   
   shareCode    String?   @unique
   sharedWithId Int?
+  readOnly     Boolean   @default(true)
   primaryUser  User?     @relation("SharedAccess", fields: [sharedWithId], references: [id])
   sharedUsers  User[]    @relation("SharedAccess")
+
+  // WhatsApp / Twilio config (admin-only)
+  twilioSid    String?
+  twilioToken  String?
+  twilioFrom   String?
 
   guests       Guest[]
   rooms        Room[]

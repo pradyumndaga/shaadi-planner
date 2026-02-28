@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Plane, FileDown, Search } from 'lucide-react';
 import { API_BASE_URL, authFetch } from '../config';
+import { useAccess } from '../AccessContext';
 
 interface GuestTravel {
     id: number;
@@ -20,6 +21,7 @@ type GroupedResult =
     | { type: 'departures'; groups: Record<string, GuestTravel[]> };
 
 export default function Travel() {
+    const { isReadOnly } = useAccess();
     const [guests, setGuests] = useState<GuestTravel[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -89,6 +91,12 @@ export default function Travel() {
                 </div>
             </header>
 
+            {isReadOnly && (
+                <div className="mb-4 flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-3">
+                    <Plane size={18} className="shrink-0" />
+                    <p className="text-sm font-medium">You have <strong>View Only</strong> access. Travel data is read-only.</p>
+                </div>
+            )}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
