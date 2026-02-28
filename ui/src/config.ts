@@ -26,3 +26,19 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
 
     return res;
 };
+
+export const downloadWithToken = async (endpointPath: string) => {
+    try {
+        const res = await authFetch(`${API_BASE_URL}/api/user/download-token`);
+        if (!res.ok) throw new Error('Failed to get download token');
+
+        const data = await res.json();
+        const hasQuery = endpointPath.includes('?');
+        const url = `${API_BASE_URL}${endpointPath}${hasQuery ? '&' : '?'}token=${data.downloadToken}`;
+
+        window.open(url, '_blank');
+    } catch (err) {
+        console.error(err);
+        toast.error('Failed to initiate download');
+    }
+};

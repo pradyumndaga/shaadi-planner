@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { UploadCloud, Plus, Search, Trash2, Edit, X, FileDown, UserCheck, UserMinus, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { API_BASE_URL, authFetch } from '../config';
+import { API_BASE_URL, authFetch, downloadWithToken } from '../config';
 import { useAccess } from '../AccessContext';
 
 interface Guest {
@@ -321,7 +321,7 @@ export default function Guests() {
                     {!isReadOnly && (
                         <>
                             <button
-                                onClick={() => window.open(`${API_BASE_URL}/api/guests/template?token=${localStorage.getItem('token')}`, '_blank')}
+                                onClick={() => downloadWithToken('/api/guests/template')}
                                 className="btn-secondary"
                             >
                                 <FileDown size={18} className="mr-2" />
@@ -345,7 +345,7 @@ export default function Guests() {
                     )}
 
                     <button
-                        onClick={() => window.open(`${API_BASE_URL}/api/guests/export/all/pdf?token=${localStorage.getItem('token')}&attendance=${attendanceFilter}`, '_blank')}
+                        onClick={() => downloadWithToken(`/api/guests/export/all/pdf?attendance=${attendanceFilter}`)}
                         className="btn-secondary flex items-center gap-2"
                     >
                         <FileDown size={18} />

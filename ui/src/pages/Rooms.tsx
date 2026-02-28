@@ -18,7 +18,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { Bed, Users, X, FileDown, FileText, Search, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { API_BASE_URL, authFetch } from '../config';
+import { API_BASE_URL, authFetch, downloadWithToken } from '../config';
 import { useAccess } from '../AccessContext';
 
 interface Guest {
@@ -470,7 +470,7 @@ export default function Rooms() {
                         </>
                     ))}
                     <button
-                        onClick={() => window.open(`${API_BASE_URL}/api/rooms/export/excel?token=${localStorage.getItem('token')}`, '_blank')}
+                        onClick={() => downloadWithToken('/api/rooms/export/excel')}
                         className="btn-secondary flex items-center gap-2"
                         disabled={isEditing}
                     >
@@ -478,7 +478,7 @@ export default function Rooms() {
                         Export Excel
                     </button>
                     <button
-                        onClick={() => window.open(`${API_BASE_URL}/api/rooms/export/pdf?token=${localStorage.getItem('token')}`, '_blank')}
+                        onClick={() => downloadWithToken('/api/rooms/export/pdf')}
                         className="btn-secondary flex items-center gap-2"
                         disabled={isEditing}
                     >

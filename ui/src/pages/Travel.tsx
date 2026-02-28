@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Plane, FileDown, Search } from 'lucide-react';
-import { API_BASE_URL, authFetch } from '../config';
+import { API_BASE_URL, authFetch, downloadWithToken } from '../config';
 import { useAccess } from '../AccessContext';
 
 interface GuestTravel {
@@ -75,14 +75,14 @@ export default function Travel() {
                 </div>
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
                     <button
-                        onClick={() => window.open(`${API_BASE_URL}/api/guests/export/travel?mode=${filterMode}&token=${localStorage.getItem('token')}`, '_blank')}
+                        onClick={() => downloadWithToken(`/api/guests/export/travel?mode=${filterMode}`)}
                         className="btn-secondary flex items-center gap-2"
                     >
                         <FileDown size={18} />
                         Excel Report
                     </button>
                     <button
-                        onClick={() => window.open(`${API_BASE_URL}/api/guests/export/travel/pdf?mode=${filterMode}&token=${localStorage.getItem('token')}`, '_blank')}
+                        onClick={() => downloadWithToken(`/api/guests/export/travel/pdf?mode=${filterMode}`)}
                         className="btn-primary flex items-center gap-2"
                     >
                         <FileDown size={18} />
