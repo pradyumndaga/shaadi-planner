@@ -68,18 +68,18 @@ function SortableGuest({ id, guest, onRemove, onMove, availableRooms, disabled, 
             style={style}
             {...attributes}
             {...listeners}
-            className={`group relative mb-2 ${compact ? 'p-3' : 'p-4'} rounded-lg border shadow-sm transition-shadow bg-white ${disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing hover:border-brand-400 hover:shadow-md'} ${currentGenderClass} touch-none`}
+            className={`group relative mb-2 ${compact ? 'p-3' : 'p-4'} rounded-lg border shadow-sm transition-shadow bg-white dark:bg-slate-800 dark:border-slate-700 ${disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing hover:border-brand-400 dark:hover:border-brand-500 hover:shadow-md'} ${currentGenderClass} touch-none`}
         >
             <div className={`w-full ${compact ? 'pr-2' : 'pr-5'}`}>
-                <p className={`font-medium ${compact ? 'text-xs' : 'text-sm'} text-gray-900 leading-tight break-words max-w-full`}>{guest.name}</p>
+                <p className={`font-medium ${compact ? 'text-xs' : 'text-sm'} text-gray-900 dark:text-white leading-tight break-words max-w-full`}>{guest.name}</p>
                 <div className="flex flex-col gap-2 mt-1.5 w-full">
-                    <p className={`${compact ? 'text-[10px]' : 'text-xs'} text-gray-500`}>{guest.mobile}</p>
+                    <p className={`${compact ? 'text-[10px]' : 'text-xs'} text-gray-500 dark:text-gray-400`}>{guest.mobile}</p>
 
                     {/* Mobile/Fallback Dropdown for moving guests */}
                     {!disabled && onMove && availableRooms && (
                         <div className="md:hidden w-full relative z-10" onPointerDown={(e) => e.stopPropagation()}>
                             <select
-                                className="w-full text-xs py-1.5 px-2 pr-6 border border-brand-200 rounded cursor-pointer bg-brand-50 text-brand-700 focus:outline-none focus:ring-1 focus:ring-brand-500 shadow-sm"
+                                className="w-full text-xs py-1.5 px-2 pr-6 border border-brand-200 dark:border-brand-800/50 rounded cursor-pointer bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 focus:outline-none focus:ring-1 focus:ring-brand-500 shadow-sm"
                                 value={guest.roomId || 'unassigned'}
                                 onChange={(e) => {
                                     const val = e.target.value;
@@ -134,7 +134,7 @@ function Room({ room, guests, onRemoveGuest, onMoveGuest, availableRooms, onTogg
     return (
         <div
             ref={setNodeRef}
-            className={`bg-gray-50 rounded-xl p-4 border-2 transition-colors min-h-[220px] flex flex-col relative ${isOver && !isFull ? 'border-brand-400 bg-brand-50' : 'border-dashed border-gray-300'}`}
+            className={`bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4 border-2 transition-colors min-h-[220px] flex flex-col relative ${isOver && !isFull ? 'border-brand-400 bg-brand-50 dark:border-brand-500 dark:bg-brand-900/20' : 'border-dashed border-gray-300 dark:border-slate-700'}`}
         >
             {isEditing && (
                 <button
@@ -147,7 +147,7 @@ function Room({ room, guests, onRemoveGuest, onMoveGuest, availableRooms, onTogg
             )}
             <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2 dark:text-white">
                         <Bed size={18} className="text-brand-600" />
                         {room.name}
                     </h3>
@@ -450,8 +450,8 @@ export default function Rooms() {
         <div className="animate-fade-in flex flex-col h-full">
             <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold font-display text-gray-900">Rooms & Allotment</h1>
-                    <p className="text-gray-500 mt-1">Drag and drop guests to allocate rooms</p>
+                    <h1 className="text-3xl font-bold font-display text-gray-900 dark:text-white">Rooms & Allotment</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Drag and drop guests to allocate rooms</p>
                 </div>
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
                     {!isReadOnly && (!isEditing ? (
@@ -489,7 +489,7 @@ export default function Rooms() {
             </header>
 
             {isReadOnly && (
-                <div className="mb-6 flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-3">
+                <div className="mb-6 flex items-center gap-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 text-yellow-800 dark:text-yellow-200 rounded-xl px-4 py-3">
                     <Users size={18} className="shrink-0" />
                     <p className="text-sm font-medium">You have <strong>View Only</strong> access to this wedding. You can view room assignments but cannot make changes.</p>
                 </div>
@@ -505,17 +505,17 @@ export default function Rooms() {
                     {/* Unassigned Guests Sidebar */}
                     <div className="card lg:col-span-1 flex flex-col h-full overflow-hidden">
                         <header className="mb-4">
-                            <h2 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                            <h2 className="font-semibold text-lg mb-2 flex items-center gap-2 text-gray-900 dark:text-white">
                                 <Users size={20} className="text-gray-400" />
                                 Unassigned Queue
-                                <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full ml-auto">{unassignedGuests.length}</span>
+                                <span className="bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-xs px-2 py-1 rounded-full ml-auto">{unassignedGuests.length}</span>
                             </h2>
                             <div className="relative group/search">
                                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within/search:text-brand-500 transition-colors" />
                                 <input
                                     type="text"
                                     placeholder="Search queue..."
-                                    className="w-full bg-gray-50 border-gray-200 rounded-lg pl-9 pr-3 py-2 text-xs focus:bg-white focus:ring-2 focus:ring-brand-500 transition-all outline-none border"
+                                    className="w-full bg-gray-50 text-gray-900 dark:text-white border-gray-200 rounded-lg pl-9 pr-3 py-2 text-xs focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-brand-500 transition-all outline-none border dark:bg-slate-800 dark:border-slate-700"
                                     value={queueSearch}
                                     onChange={e => setQueueSearch(e.target.value)}
                                 />
@@ -524,7 +524,7 @@ export default function Rooms() {
 
                         <div
                             ref={setUnassignedRef}
-                            className={`flex-1 overflow-y-auto pr-2 custom-scrollbar transition-colors ${isUnassignedOver ? 'bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg' : ''} ${isEditing ? 'ring-2 ring-brand-200 ring-inset rounded-lg p-2' : ''}`}
+                            className={`flex-1 overflow-y-auto pr-2 custom-scrollbar transition-colors ${isUnassignedOver ? 'bg-gray-50 dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg' : ''} ${isEditing ? 'ring-2 ring-brand-200 dark:ring-brand-800 ring-inset rounded-lg p-2' : ''}`}
                         >
                             <div className="space-y-2 pb-4">
                                 <SortableContext items={(isEditing ? tempUnassigned : unassignedGuests).map(g => `guest-${g.id}`)} strategy={verticalListSortingStrategy}>
@@ -630,7 +630,7 @@ export default function Rooms() {
                         {/* Add new room placeholder */}
                         <div
                             onClick={!isEditing ? handleAddRooms : undefined}
-                            className={`border-2 border-dashed border-gray-300 rounded-xl min-h-[200px] flex items-center justify-center transition-colors group ${isEditing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-brand-400 hover:bg-brand-50'}`}
+                            className={`border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl min-h-[200px] flex items-center justify-center transition-colors group ${isEditing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-brand-400 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20'}`}
                         >
                             <div className="text-center">
                                 <div className="bg-white p-3 rounded-full inline-block mb-2 shadow-sm group-hover:shadow-md transition-shadow">
@@ -644,8 +644,8 @@ export default function Rooms() {
 
                 <DragOverlay>
                     {activeGuest ? (
-                        <div className="bg-white p-3 rounded-lg border border-brand-400 shadow-xl opacity-90 scale-105 cursor-grabbing rotate-2">
-                            <p className="font-medium text-sm text-gray-900">{activeGuest.name}</p>
+                        <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-brand-400 dark:border-brand-500 shadow-xl opacity-90 scale-105 cursor-grabbing rotate-2">
+                            <p className="font-medium text-sm text-gray-900 dark:text-white">{activeGuest.name}</p>
                             <p className="text-xs text-brand-600 font-medium">Dragging...</p>
                         </div>
                     ) : null}

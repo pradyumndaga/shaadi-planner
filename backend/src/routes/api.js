@@ -616,7 +616,7 @@ router.post('/guests/bulk-delete', requireWriteAccess, async (req, res) => {
     }
 });
 
-router.get('/guests/template', requireWriteAccess, (req, res) => {
+router.get('/guests/template', (req, res) => {
     try {
         const headers = [
             'Name',

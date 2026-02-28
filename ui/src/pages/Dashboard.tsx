@@ -148,8 +148,8 @@ export default function Dashboard() {
     return (
         <div className="animate-fade-in">
             <header className="mb-8">
-                <h1 className="text-3xl font-bold font-display text-gray-900">Dashboard</h1>
-                <p className="text-gray-500 mt-1">Overview of your wedding planning progress</p>
+                <h1 className="text-3xl font-bold font-display text-gray-900 dark:text-white">Dashboard</h1>
+                <p className="text-gray-500 dark:text-gray-400 mt-1">Overview of your wedding planning progress</p>
             </header>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -159,15 +159,15 @@ export default function Dashboard() {
                         <div key={i} className="card relative overflow-hidden group">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                                    <p className="mt-2 text-3xl font-semibold tracking-tight text-gray-900">{stat.value}</p>
+                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{stat.title}</p>
+                                    <p className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">{stat.value}</p>
                                 </div>
-                                <div className={`p-3 rounded-xl ${stat.color} transition-transform group-hover:scale-110`}>
+                                <div className={`p-3 rounded-xl ${stat.color} dark:bg-opacity-20 transition-transform group-hover:scale-110`}>
                                     <Icon size={24} />
                                 </div>
                             </div>
                             <div className="mt-4">
-                                <span className="text-sm text-gray-500">{stat.subvalue}</span>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">{stat.subvalue}</span>
                             </div>
                             <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-brand-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         </div>
@@ -178,18 +178,18 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
                 {/* Pending Notifications Summary Card */}
                 {stats.unnotifiedGuests > 0 && (
-                    <div className="card lg:col-span-2 border-orange-200 bg-gradient-to-br from-orange-50/50 to-white overflow-hidden relative group">
+                    <div className="card lg:col-span-2 border-orange-200 dark:border-orange-500/30 bg-gradient-to-br from-orange-50/50 to-white dark:from-orange-900/10 dark:to-slate-800 overflow-hidden relative group">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-2">
                             <div className="flex items-center gap-5">
-                                <div className="p-4 bg-orange-100 rounded-2xl text-orange-600 shadow-sm transition-transform group-hover:scale-110 duration-300">
+                                <div className="p-4 bg-orange-100 dark:bg-orange-900/40 rounded-2xl text-orange-600 dark:text-orange-400 shadow-sm transition-transform group-hover:scale-110 duration-300">
                                     <MessageSquareDashed size={32} />
                                 </div>
                                 <div className="text-center sm:text-left">
-                                    <h3 className="text-xl font-bold text-gray-900 font-display">
+                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white font-display">
                                         Pending Room Notifications
                                     </h3>
-                                    <p className="text-gray-500 mt-1 max-w-sm">
-                                        You have <span className="font-bold text-orange-600 underline decoration-orange-200 underline-offset-4">{stats.unnotifiedGuests} guests</span> waiting to be notified about their room assignments.
+                                    <p className="text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
+                                        You have <span className="font-bold text-orange-600 dark:text-orange-400 underline decoration-orange-200 dark:decoration-orange-800 underline-offset-4">{stats.unnotifiedGuests} guests</span> waiting to be notified about their room assignments.
                                     </p>
                                 </div>
                             </div>
@@ -205,7 +205,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* Decorative background element */}
-                        <div className="absolute -right-8 -bottom-8 opacity-[0.03] text-orange-600 group-hover:opacity-[0.06] transition-opacity duration-700 pointer-events-none">
+                        <div className="absolute -right-8 -bottom-8 opacity-[0.03] dark:opacity-[0.05] text-orange-600 dark:text-orange-500 group-hover:opacity-[0.06] transition-opacity duration-700 pointer-events-none">
                             <MessageSquareDashed size={160} />
                         </div>
                     </div>
@@ -213,7 +213,7 @@ export default function Dashboard() {
 
                 {/* Attendance Chart */}
                 <div className="card">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 font-display">Attendance Distribution</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 font-display">Attendance Distribution</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -239,7 +239,7 @@ export default function Dashboard() {
 
                 {/* Occupancy Chart */}
                 <div className="card">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 font-display">Overall Room Occupancy</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 font-display">Overall Room Occupancy</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart
@@ -261,54 +261,54 @@ export default function Dashboard() {
             </div>
 
             {/* Access Sharing Section */}
-            <div className="mt-8 border-t border-gray-100 pt-8 pb-12">
+            <div className="mt-8 border-t border-gray-100 dark:border-slate-800 pt-8 pb-12">
                 <header className="mb-6">
-                    <h2 className="text-2xl font-bold font-display text-gray-900 flex items-center gap-2">
-                        <Share2 className="text-brand-600" size={24} />
+                    <h2 className="text-2xl font-bold font-display text-gray-900 dark:text-white flex items-center gap-2">
+                        <Share2 className="text-brand-600 dark:text-brand-500" size={24} />
                         Wedding Access
                     </h2>
-                    <p className="text-gray-500 mt-1">Share access with your partner or family members</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Share access with your partner or family members</p>
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Share Your Wedding */}
-                    <div className="card bg-gradient-to-br from-brand-50 to-white border-brand-100">
+                    <div className="card bg-gradient-to-br from-brand-50 to-white dark:from-brand-900/10 dark:to-slate-800 border-brand-100 dark:border-brand-900/50">
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 font-display">Invite Others</h3>
-                                <p className="text-sm text-gray-500 mt-1">Give this code to others so they can join and help manage your wedding.</p>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white font-display">Invite Others</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Give this code to others so they can join and help manage your wedding.</p>
                             </div>
-                            <div className="p-3 bg-white rounded-xl shadow-sm border border-brand-100 text-brand-600">
+                            <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-brand-100 dark:border-slate-700 text-brand-600 dark:text-brand-400">
                                 <Users size={20} />
                             </div>
                         </div>
 
                         {accessData?.primaryUser ? (
-                            <div className="bg-white rounded-lg p-5 border border-brand-100 text-center">
-                                <p className="text-sm text-gray-600 mb-2">You are currently viewing a shared wedding.</p>
-                                <p className="font-semibold text-gray-900">Linked to: {accessData.primaryUser.mobile}</p>
+                            <div className="bg-white dark:bg-slate-800 rounded-lg p-5 border border-brand-100 dark:border-slate-700 text-center">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">You are currently viewing a shared wedding.</p>
+                                <p className="font-semibold text-gray-900 dark:text-white">Linked to: {accessData.primaryUser.mobile}</p>
                                 <button
                                     onClick={handleDisconnect}
-                                    className="mt-4 inline-flex items-center gap-2 text-red-600 font-medium hover:text-red-700 text-sm"
+                                    className="mt-4 inline-flex items-center gap-2 text-red-600 dark:text-red-400 font-medium hover:text-red-700 dark:hover:text-red-300 text-sm"
                                 >
                                     <Unlink size={16} /> Disconnect
                                 </button>
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <div className="bg-white rounded-xl border border-brand-200 p-4 text-center">
-                                    <p className="text-xs text-brand-600 font-bold uppercase tracking-wider mb-1">Your Share Code</p>
-                                    <p className="text-4xl font-display font-medium tracking-widest text-gray-900">
+                                <div className="bg-white dark:bg-slate-800 rounded-xl border border-brand-200 dark:border-brand-800/50 p-4 text-center">
+                                    <p className="text-xs text-brand-600 dark:text-brand-400 font-bold uppercase tracking-wider mb-1">Your Share Code</p>
+                                    <p className="text-4xl font-display font-medium tracking-widest text-gray-900 dark:text-white">
                                         {accessData?.shareCode || '------'}
                                     </p>
                                 </div>
 
                                 {accessData?.sharedUsers && accessData.sharedUsers.length > 0 && (
                                     <div className="mt-4">
-                                        <p className="text-sm font-medium text-gray-700 mb-2">Linked Accounts:</p>
+                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Linked Accounts:</p>
                                         <div className="space-y-2">
                                             {accessData.sharedUsers.map((user, idx) => (
-                                                <div key={idx} className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-100 text-sm text-gray-600">
+                                                <div key={idx} className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-gray-100 dark:border-slate-700 text-sm text-gray-600 dark:text-gray-400">
                                                     <UserCheck size={14} className="text-green-500" />
                                                     {user.mobile}
                                                 </div>
@@ -324,10 +324,10 @@ export default function Dashboard() {
                     <div className="card">
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 font-display">Join a Wedding</h3>
-                                <p className="text-sm text-gray-500 mt-1">Enter a 6-digit share code to help manage someone else's wedding.</p>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white font-display">Join a Wedding</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Enter a 6-digit share code to help manage someone else's wedding.</p>
                             </div>
-                            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 text-gray-600">
+                            <div className="p-3 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-100 dark:border-slate-700 text-gray-600 dark:text-gray-400">
                                 <LinkIcon size={20} />
                             </div>
                         </div>
@@ -352,7 +352,7 @@ export default function Dashboard() {
                         </div>
 
                         {!!accessData?.primaryUser && (
-                            <p className="text-xs text-orange-600 font-medium mt-3 bg-orange-50 p-2 rounded">
+                            <p className="text-xs text-orange-600 dark:text-orange-400 font-medium mt-3 bg-orange-50 dark:bg-orange-900/20 p-2 rounded">
                                 You must disconnect from your current shared wedding before joining a new one.
                             </p>
                         )}

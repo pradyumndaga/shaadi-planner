@@ -70,8 +70,8 @@ export default function Travel() {
         <div className="animate-fade-in">
             <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold font-display text-gray-900">Travel Itinerary</h1>
-                    <p className="text-gray-500 mt-1">Group guests by transport for easy pickup coordination</p>
+                    <h1 className="text-3xl font-bold font-display text-gray-900 dark:text-white">Travel Itinerary</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Group guests by transport for easy pickup coordination</p>
                 </div>
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
                     <button
@@ -92,7 +92,7 @@ export default function Travel() {
             </header>
 
             {isReadOnly && (
-                <div className="mb-4 flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-3">
+                <div className="mb-4 flex items-center gap-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 text-yellow-800 dark:text-yellow-200 rounded-xl px-4 py-3">
                     <Plane size={18} className="shrink-0" />
                     <p className="text-sm font-medium">You have <strong>View Only</strong> access. Travel data is read-only.</p>
                 </div>
@@ -108,22 +108,22 @@ export default function Travel() {
                         onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex flex-wrap justify-center gap-2 bg-white p-1 rounded-lg border border-gray-200">
+                <div className="flex flex-wrap justify-center gap-2 bg-white dark:bg-slate-800 p-1 rounded-lg border border-gray-200 dark:border-slate-700">
                     <button
                         onClick={() => setFilterMode('all')}
-                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${filterMode === 'all' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${filterMode === 'all' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
                     >
                         Show All
                     </button>
                     <button
                         onClick={() => setFilterMode('arrivals')}
-                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${filterMode === 'arrivals' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${filterMode === 'arrivals' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
                     >
                         Arrival Groups
                     </button>
                     <button
                         onClick={() => setFilterMode('departures')}
-                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${filterMode === 'departures' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${filterMode === 'departures' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
                     >
                         Departure Groups
                     </button>
@@ -136,26 +136,26 @@ export default function Travel() {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead>
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Guest</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Arrival Info</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Departure Info</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">Guest</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">Arrival Info</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">Departure Info</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">Status</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                                 {groupedData.data.map(guest => (
-                                    <tr key={guest.id} className="hover:bg-gray-50 transition-colors">
+                                    <tr key={guest.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="font-medium text-gray-900">{guest.name}</div>
-                                            <div className="text-xs text-gray-500">{guest.mobile}</div>
+                                            <div className="font-medium text-gray-900 dark:text-white">{guest.name}</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">{guest.mobile}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-medium text-gray-900">{guest.arrivalFlightNo || '-'}</div>
-                                            <div className="text-xs text-gray-500">{guest.arrivalTime ? new Date(guest.arrivalTime).toLocaleString() : ''}</div>
+                                            <div className="text-sm font-medium text-gray-900 dark:text-white">{guest.arrivalFlightNo || '-'}</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">{guest.arrivalTime ? new Date(guest.arrivalTime).toLocaleString() : ''}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-medium text-gray-900">{guest.departureFlightNo || '-'}</div>
-                                            <div className="text-xs text-gray-500">{guest.departureTime ? new Date(guest.departureTime).toLocaleString() : ''}</div>
+                                            <div className="text-sm font-medium text-gray-900 dark:text-white">{guest.departureFlightNo || '-'}</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">{guest.departureTime ? new Date(guest.departureTime).toLocaleString() : ''}</div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             {(() => {
@@ -185,19 +185,19 @@ export default function Travel() {
                 <div className="space-y-6">
                     {Object.keys(groupedData.groups).map(flightKey => (
                         <div key={flightKey} className="card border-l-4 border-l-brand-600">
-                            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
+                            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-brand-50 rounded-lg text-brand-600">
+                                    <div className="p-2 bg-brand-50 dark:bg-brand-900/40 rounded-lg text-brand-600 dark:text-brand-400">
                                         <Plane size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                        <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                             Flight/Train: {flightKey}
-                                            <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                            <span className="text-xs font-normal text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
                                                 {groupedData.groups[flightKey].length} Guests
                                             </span>
                                         </h3>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
                                             PNR: {groupedData.groups[flightKey][0][groupedData.type === 'arrivals' ? 'arrivalPnr' : 'departurePnr'] || 'N/A'} •
                                             Time: {groupedData.groups[flightKey][0][groupedData.type === 'arrivals' ? 'arrivalTime' : 'departureTime'] ? new Date(groupedData.groups[flightKey][0][groupedData.type === 'arrivals' ? 'arrivalTime' : 'departureTime']!).toLocaleString() : 'N/A'}
                                         </p>
@@ -209,9 +209,9 @@ export default function Travel() {
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 {groupedData.groups[flightKey].map(guest => (
-                                    <div key={guest.id} className="bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-                                        <div className="text-sm font-medium text-gray-900">{guest.name}</div>
-                                        <div className="text-[10px] text-gray-500">
+                                    <div key={guest.id} className="bg-gray-50 dark:bg-slate-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-700">
+                                        <div className="text-sm font-medium text-gray-900 dark:text-white">{guest.name}</div>
+                                        <div className="text-[10px] text-gray-500 dark:text-gray-400">
                                             {guest.mobile} • PNR: {groupedData.type === 'arrivals' ? (guest.arrivalPnr || '-') : (guest.departurePnr || '-')}
                                         </div>
                                     </div>

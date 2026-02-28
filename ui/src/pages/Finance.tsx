@@ -63,12 +63,12 @@ export default function Finance() {
 
             <div className="flex-1">
                 <header className="mb-8">
-                    <h1 className="text-3xl font-bold font-display text-gray-900">Finance Management</h1>
-                    <p className="text-gray-500 mt-1">Track wedding budget and expenses</p>
+                    <h1 className="text-3xl font-bold font-display text-gray-900 dark:text-white">Finance Management</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Track wedding budget and expenses</p>
                 </header>
 
                 {isReadOnly && (
-                    <div className="mb-6 flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-3">
+                    <div className="mb-6 flex items-center gap-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 text-yellow-800 dark:text-yellow-200 rounded-xl px-4 py-3">
                         <Wallet size={18} className="shrink-0" />
                         <p className="text-sm font-medium">You have <strong>View Only</strong> access. You can view expenses but cannot add new ones.</p>
                     </div>
@@ -81,12 +81,12 @@ export default function Finance() {
                         <p className="text-4xl font-bold font-display">₹{totalSpent.toLocaleString()}</p>
                     </div>
 
-                    <div className="card bg-white">
-                        <h3 className="font-medium text-gray-500 mb-1 flex items-center gap-2">
+                    <div className="card bg-white dark:bg-slate-800">
+                        <h3 className="font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-2">
                             <PieChart size={18} className="text-gray-400" /> Top Category
                         </h3>
                         {expenses.length > 0 ? (
-                            <p className="text-2xl font-bold text-gray-900">{expenses[0].category}</p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{expenses[0].category}</p>
                         ) : (
                             <p className="text-xl text-gray-400">No expenses yet</p>
                         )}
@@ -94,19 +94,19 @@ export default function Finance() {
                 </div>
 
                 <div className="card">
-                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2 text-gray-900 dark:text-white">
                         <Receipt size={20} className="text-brand-600" />
                         Recent Transactions
                     </h3>
                     <div className="space-y-4">
                         {expenses.map(exp => (
-                            <div key={exp.id} className="flex justify-between items-center p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+                            <div key={exp.id} className="flex justify-between items-center p-4 border border-gray-100 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                 <div>
-                                    <p className="font-medium text-gray-900">{exp.category}</p>
-                                    <p className="text-sm text-gray-500">{exp.description || 'No description'}</p>
+                                    <p className="font-medium text-gray-900 dark:text-white">{exp.category}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{exp.description || 'No description'}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-semibold text-gray-900">₹{exp.amount.toLocaleString()}</p>
+                                    <p className="font-semibold text-gray-900 dark:text-white">₹{exp.amount.toLocaleString()}</p>
                                     <p className="text-xs text-gray-400">{new Date(exp.createdAt).toLocaleDateString()}</p>
                                 </div>
                             </div>
@@ -122,14 +122,14 @@ export default function Finance() {
             {!isReadOnly && (
                 <div className="w-full md:w-80">
                     <div className="card sticky top-8">
-                        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                            <Plus size={18} className="text-brand-600" />
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                            <Plus size={18} className="text-brand-600 dark:text-brand-400" />
                             Add Expense
                         </h3>
 
                         <form onSubmit={handleAddExpense} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
                                 <input
                                     type="text"
                                     required
@@ -141,7 +141,7 @@ export default function Finance() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount (₹)</label>
                                 <input
                                     type="number"
                                     required
@@ -153,7 +153,7 @@ export default function Finance() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (Optional)</label>
                                 <textarea
                                     className="input-field"
                                     rows={3}

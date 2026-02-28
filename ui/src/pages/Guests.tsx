@@ -313,8 +313,8 @@ export default function Guests() {
         <div className="animate-fade-in">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold font-display text-gray-900">Guest List</h1>
-                    <p className="text-gray-500 mt-1">Manage all your wedding guests</p>
+                    <h1 className="text-3xl font-bold font-display text-gray-900 dark:text-white">Guest List</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Manage all your wedding guests</p>
                 </div>
 
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
@@ -373,7 +373,7 @@ export default function Guests() {
             </header>
 
             {isReadOnly && (
-                <div className="mb-6 flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-3">
+                <div className="mb-6 flex items-center gap-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 text-yellow-800 dark:text-yellow-200 rounded-xl px-4 py-3">
                     <UserCheck size={18} className="shrink-0" />
                     <p className="text-sm font-medium">You have <strong>View Only</strong> access to this wedding. Contact the admin to request edit permissions.</p>
                 </div>
@@ -383,38 +383,38 @@ export default function Guests() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 <div
                     onClick={() => setAttendanceFilter('All')}
-                    className={`rounded-xl shadow-sm border p-4 flex items-center gap-4 cursor-pointer transition-all ${attendanceFilter === 'All' ? 'border-brand-500 ring-1 ring-brand-500 bg-brand-50' : 'bg-white border-brand-100 hover:border-brand-300 hover:shadow-md opacity-80 hover:opacity-100'}`}
+                    className={`rounded-xl shadow-sm border p-4 flex items-center gap-4 cursor-pointer transition-all ${attendanceFilter === 'All' ? 'border-brand-500 ring-1 ring-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'bg-white dark:bg-slate-800 border-brand-100 dark:border-slate-700 hover:border-brand-300 hover:shadow-md opacity-80 hover:opacity-100'}`}
                 >
-                    <div className={`p-3 rounded-lg ${attendanceFilter === 'All' ? 'bg-white text-brand-600 shadow-sm' : 'bg-brand-50 text-brand-600'}`}>
+                    <div className={`p-3 rounded-lg ${attendanceFilter === 'All' ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm' : 'bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400'}`}>
                         <Users size={20} />
                     </div>
                     <div>
-                        <p className={`text-sm font-medium ${attendanceFilter === 'All' ? 'text-brand-800' : 'text-gray-500'}`}>Total Guests</p>
-                        <p className={`text-2xl font-bold ${attendanceFilter === 'All' ? 'text-brand-900' : 'text-gray-900'}`}>{totalGuestsCount}</p>
+                        <p className={`text-sm font-medium ${attendanceFilter === 'All' ? 'text-brand-800 dark:text-brand-300' : 'text-gray-500 dark:text-gray-400'}`}>Total Guests</p>
+                        <p className={`text-2xl font-bold ${attendanceFilter === 'All' ? 'text-brand-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>{totalGuestsCount}</p>
                     </div>
                 </div>
                 <div
                     onClick={() => setAttendanceFilter('Visiting')}
-                    className={`rounded-xl shadow-sm border p-4 flex items-center gap-4 cursor-pointer transition-all ${attendanceFilter === 'Visiting' ? 'border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50' : 'bg-white border-emerald-100 hover:border-emerald-300 hover:shadow-md opacity-80 hover:opacity-100'}`}
+                    className={`rounded-xl shadow-sm border p-4 flex items-center gap-4 cursor-pointer transition-all ${attendanceFilter === 'Visiting' ? 'border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'bg-white dark:bg-slate-800 border-emerald-100 dark:border-slate-700 hover:border-emerald-300 hover:shadow-md opacity-80 hover:opacity-100'}`}
                 >
-                    <div className={`p-3 rounded-lg ${attendanceFilter === 'Visiting' ? 'bg-white text-emerald-600 shadow-sm' : 'bg-emerald-50 text-emerald-600'}`}>
+                    <div className={`p-3 rounded-lg ${attendanceFilter === 'Visiting' ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'}`}>
                         <UserCheck size={20} />
                     </div>
                     <div>
-                        <p className={`text-sm font-medium ${attendanceFilter === 'Visiting' ? 'text-emerald-800' : 'text-gray-500'}`}>Visiting</p>
-                        <p className={`text-2xl font-bold ${attendanceFilter === 'Visiting' ? 'text-emerald-900' : 'text-gray-900'}`}>{visitingGuestsCount}</p>
+                        <p className={`text-sm font-medium ${attendanceFilter === 'Visiting' ? 'text-emerald-800 dark:text-emerald-300' : 'text-gray-500 dark:text-gray-400'}`}>Visiting</p>
+                        <p className={`text-2xl font-bold ${attendanceFilter === 'Visiting' ? 'text-emerald-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>{visitingGuestsCount}</p>
                     </div>
                 </div>
                 <div
                     onClick={() => setAttendanceFilter('Tentative')}
-                    className={`rounded-xl shadow-sm border p-4 flex items-center gap-4 cursor-pointer transition-all ${attendanceFilter === 'Tentative' ? 'border-orange-500 ring-1 ring-orange-500 bg-orange-50' : 'bg-white border-orange-100 hover:border-orange-300 hover:shadow-md opacity-80 hover:opacity-100'}`}
+                    className={`rounded-xl shadow-sm border p-4 flex items-center gap-4 cursor-pointer transition-all ${attendanceFilter === 'Tentative' ? 'border-orange-500 ring-1 ring-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'bg-white dark:bg-slate-800 border-orange-100 dark:border-slate-700 hover:border-orange-300 hover:shadow-md opacity-80 hover:opacity-100'}`}
                 >
-                    <div className={`p-3 rounded-lg ${attendanceFilter === 'Tentative' ? 'bg-white text-orange-600 shadow-sm' : 'bg-orange-50 text-orange-600'}`}>
+                    <div className={`p-3 rounded-lg ${attendanceFilter === 'Tentative' ? 'bg-white dark:bg-slate-800 text-orange-600 dark:text-orange-400 shadow-sm' : 'bg-orange-50 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400'}`}>
                         <UserMinus size={20} />
                     </div>
                     <div>
-                        <p className={`text-sm font-medium ${attendanceFilter === 'Tentative' ? 'text-orange-800' : 'text-gray-500'}`}>Tentative</p>
-                        <p className={`text-2xl font-bold ${attendanceFilter === 'Tentative' ? 'text-orange-900' : 'text-gray-900'}`}>{tentativeGuestsCount}</p>
+                        <p className={`text-sm font-medium ${attendanceFilter === 'Tentative' ? 'text-orange-800 dark:text-orange-300' : 'text-gray-500 dark:text-gray-400'}`}>Tentative</p>
+                        <p className={`text-2xl font-bold ${attendanceFilter === 'Tentative' ? 'text-orange-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>{tentativeGuestsCount}</p>
                     </div>
                 </div>
             </div>
@@ -435,7 +435,7 @@ export default function Guests() {
                     </div>
                     <div className="flex gap-4 sm:w-auto w-full">
                         <select
-                            className="input-field shadow-sm bg-white min-w-[160px]"
+                            className="input-field shadow-sm bg-white min-w-[160px] dark:bg-slate-800"
                             value={roomFilter}
                             onChange={(e) => setRoomFilter(e.target.value)}
                         >
@@ -466,19 +466,19 @@ export default function Guests() {
                                             onChange={toggleSelectAll}
                                         />
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Mobile</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Gender</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Attendance</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">Room Status</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 tracking-wider">Actions</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">Name</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">Mobile</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">Gender</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">Attendance</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">Room Status</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                                 {filteredGuests.map(guest => (
                                     <tr
                                         key={guest.id}
-                                        className={`transition-colors ${selectedIds.has(guest.id) ? 'bg-brand-50/50' : (guest.isTentative ? 'bg-orange-50/40 hover:bg-orange-50/70' : 'hover:bg-gray-50')}`}
+                                        className={`transition-colors ${selectedIds.has(guest.id) ? 'bg-brand-50/50 dark:bg-brand-900/20' : (guest.isTentative ? 'bg-orange-50/40 hover:bg-orange-50/70 dark:bg-orange-900/10 dark:hover:bg-orange-900/20' : 'hover:bg-gray-50 dark:hover:bg-slate-700/50')}`}
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <input
@@ -488,8 +488,8 @@ export default function Guests() {
                                                 onChange={() => toggleSelectRow(guest.id)}
                                             />
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{guest.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{guest.mobile}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{guest.name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{guest.mobile}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${guest.gender === 'Male' ? 'badge-radiant-male' :
                                                 guest.gender === 'Female' ? 'badge-radiant-female' :
@@ -514,11 +514,11 @@ export default function Guests() {
                                                 )}
                                             </button>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                             {guest.room ? (
-                                                <span className="text-brand-600 font-medium">{guest.room.name}</span>
+                                                <span className="text-brand-600 dark:text-brand-400 font-medium">{guest.room.name}</span>
                                             ) : (
-                                                <span className="text-gray-400">Unassigned</span>
+                                                <span className="text-gray-400 dark:text-gray-500">Unassigned</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -546,9 +546,9 @@ export default function Guests() {
             {
                 isModalOpen && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-fade-in">
-                            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-                                <h2 className="text-xl font-semibold text-gray-900">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-fade-in">
+                            <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-700">
+                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                                     {editingGuest ? 'Edit Guest' : 'Add Guest'}
                                 </h2>
                                 <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -558,7 +558,7 @@ export default function Guests() {
                             <form onSubmit={saveGuest} className="p-6">
                                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name *</label>
                                         <input
                                             type="text"
                                             required
@@ -569,7 +569,7 @@ export default function Guests() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Mobile *</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mobile *</label>
                                             <input
                                                 type="text"
                                                 required
@@ -579,7 +579,7 @@ export default function Guests() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender</label>
                                             <select
                                                 className="input-field"
                                                 value={formData.gender}
@@ -599,16 +599,16 @@ export default function Guests() {
                                             checked={formData.isTentative}
                                             onChange={e => setFormData({ ...formData, isTentative: e.target.checked })}
                                         />
-                                        <label htmlFor="isTentative" className="ml-2 block text-sm text-gray-900">
+                                        <label htmlFor="isTentative" className="ml-2 block text-sm text-gray-900 dark:text-white">
                                             Mark as Tentative (Might not attend)
                                         </label>
                                     </div>
 
-                                    <hr className="my-4 border-gray-100" />
-                                    <h3 className="font-medium text-base text-gray-900 mb-2">Travel - Arrival</h3>
+                                    <hr className="my-4 border-gray-100 dark:border-slate-700" />
+                                    <h3 className="font-medium text-base text-gray-900 mb-2 dark:text-white">Travel - Arrival</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Arrival Time</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Arrival Time</label>
                                             <input
                                                 type="datetime-local"
                                                 className="input-field"
@@ -618,7 +618,7 @@ export default function Guests() {
                                             <p className="text-[11px] text-gray-500 mt-1.5 italic font-medium tracking-tight">Saved automatically — tap outside to close</p>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Arrival Flight/Train No.</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Arrival Flight/Train No.</label>
                                             <input
                                                 type="text"
                                                 placeholder="e.g. 6E 2131"
@@ -628,7 +628,7 @@ export default function Guests() {
                                             />
                                         </div>
                                         <div className="col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Arrival PNR</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Arrival PNR</label>
                                             <input
                                                 type="text"
                                                 placeholder="e.g. V83ND0"
@@ -640,7 +640,7 @@ export default function Guests() {
                                     </div>
 
                                     <div className="mt-4">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Apply Arrival details to other guests:</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apply Arrival details to other guests:</label>
                                         <div className="relative">
                                             <input
                                                 type="text"
@@ -652,7 +652,7 @@ export default function Guests() {
                                                 onBlur={() => setTimeout(() => setShowArrivalOptions(false), 200)}
                                             />
                                             {showArrivalOptions && (
-                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto top-[42px]">
+                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto top-[42px] dark:bg-slate-800 dark:border-slate-700">
                                                     {guests
                                                         .filter(g => !g.isTentative && g.id !== editingGuest?.id && !linkedArrivals.includes(g.id))
                                                         .filter(g => g.name.toLowerCase().includes(arrivalSearch.toLowerCase()))
@@ -693,11 +693,11 @@ export default function Guests() {
                                         )}
                                     </div>
 
-                                    <hr className="my-4 border-gray-100" />
-                                    <h3 className="font-medium text-base text-gray-900 mb-2">Travel - Departure</h3>
+                                    <hr className="my-4 border-gray-100 dark:border-slate-700" />
+                                    <h3 className="font-medium text-base text-gray-900 mb-2 dark:text-white">Travel - Departure</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Departure Time</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departure Time</label>
                                             <input
                                                 type="datetime-local"
                                                 className="input-field"
@@ -707,7 +707,7 @@ export default function Guests() {
                                             <p className="text-[11px] text-gray-500 mt-1.5 italic font-medium tracking-tight">Saved automatically — tap outside to close</p>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Departure Flight/Train No.</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departure Flight/Train No.</label>
                                             <input
                                                 type="text"
                                                 placeholder="e.g. 6E 2132"
@@ -717,7 +717,7 @@ export default function Guests() {
                                             />
                                         </div>
                                         <div className="col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Departure PNR</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departure PNR</label>
                                             <input
                                                 type="text"
                                                 placeholder="e.g. V83ND1"
@@ -729,7 +729,7 @@ export default function Guests() {
                                     </div>
 
                                     <div className="mt-4">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Apply Departure details to other guests:</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apply Departure details to other guests:</label>
                                         <div className="relative">
                                             <input
                                                 type="text"
@@ -741,7 +741,7 @@ export default function Guests() {
                                                 onBlur={() => setTimeout(() => setShowDepartureOptions(false), 200)}
                                             />
                                             {showDepartureOptions && (
-                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto top-[42px]">
+                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto top-[42px] dark:bg-slate-800 dark:border-slate-700">
                                                     {guests
                                                         .filter(g => !g.isTentative && g.id !== editingGuest?.id && !linkedDepartures.includes(g.id))
                                                         .filter(g => g.name.toLowerCase().includes(departureSearch.toLowerCase()))

@@ -44,25 +44,25 @@ function WeddingForm({ groomName, setGroomName, brideName, setBrideName, wedding
     venue: string; setVenue: (v: string) => void;
 }) {
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <span>💍</span> Wedding Details
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Groom's Name</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Groom's Name</label>
                     <input type="text" className="input-field" placeholder="e.g. Rahul Sharma" value={groomName} onChange={e => setGroomName(e.target.value)} />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Bride's Name</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bride's Name</label>
                     <input type="text" className="input-field" placeholder="e.g. Priya Gupta" value={brideName} onChange={e => setBrideName(e.target.value)} />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Wedding Date</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Wedding Date</label>
                     <input type="date" className="input-field" value={weddingDate} onChange={e => setWeddingDate(e.target.value)} />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Venue / Place</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Venue / Place</label>
                     <input type="text" className="input-field" placeholder="e.g. Taj Mahal Palace, Mumbai" value={venue} onChange={e => setVenue(e.target.value)} />
                 </div>
             </div>
@@ -88,12 +88,12 @@ function SettingsPanel({ models, selectedModel, setSelectedModel, apiKey, setApi
     };
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 overflow-hidden">
-            <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm mb-6 overflow-hidden">
+            <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-brand-50 rounded-lg text-brand-600"><Key size={18} /></div>
+                    <div className="p-2 bg-brand-50 dark:bg-brand-900/30 rounded-lg text-brand-600 dark:text-brand-400"><Key size={18} /></div>
                     <div className="text-left">
-                        <p className="font-semibold text-gray-900">{title}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{title}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
                             {keySaved ? `Using: ${current?.label} • Key saved locally` : 'Configure to get started'}
                         </p>
@@ -106,16 +106,16 @@ function SettingsPanel({ models, selectedModel, setSelectedModel, apiKey, setApi
             </button>
 
             {open && (
-                <div className="border-t border-gray-100 p-5 space-y-5">
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
+                <div className="border-t border-gray-100 dark:border-slate-700 p-5 space-y-5">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-4 flex gap-3">
                         <AlertCircle size={18} className="text-blue-500 shrink-0 mt-0.5" />
-                        <p className="text-sm text-blue-700">
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
                             <strong>Your API key is stored in your browser only</strong> — never sent to our servers. All calls go directly from your browser to the AI provider.
                         </p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">AI Model</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">AI Model</label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {models.map(model => (
                                 <button
@@ -123,16 +123,16 @@ function SettingsPanel({ models, selectedModel, setSelectedModel, apiKey, setApi
                                     onClick={() => !('unavailable' in model && model.unavailable) && setSelectedModel(model.id)}
                                     disabled={'unavailable' in model && model.unavailable}
                                     className={`border rounded-xl p-4 text-left transition-all ${'unavailable' in model && model.unavailable
-                                        ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
+                                        ? 'border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50 opacity-60 cursor-not-allowed'
                                         : selectedModel === model.id
-                                            ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
-                                            : 'border-gray-200 hover:border-gray-300 bg-white'
+                                            ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/30 ring-1 ring-brand-500'
+                                            : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800'
                                         }`}
                                 >
                                     <div className="flex items-center justify-between mb-1">
-                                        <p className="font-semibold text-sm text-gray-900">{model.label}</p>
+                                        <p className="font-semibold text-sm text-gray-900 dark:text-white">{model.label}</p>
                                         {'unavailable' in model && model.unavailable && (
-                                            <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-gray-200 text-gray-500">Coming Soon</span>
+                                            <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-gray-200 dark:bg-slate-600 text-gray-500 dark:text-gray-400">Coming Soon</span>
                                         )}
                                     </div>
                                     <p className="text-xs text-gray-400">{model.description}</p>
@@ -142,7 +142,7 @@ function SettingsPanel({ models, selectedModel, setSelectedModel, apiKey, setApi
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">API Key</label>
                         <div className="relative">
                             <input
                                 type={showKey ? 'text' : 'password'}
@@ -215,30 +215,30 @@ function ShareModal({ imageBase64, onClose }: { imageBase64: string, onClose: ()
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
-                <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <h3 className="font-display font-semibold text-lg flex items-center gap-2"><Share2 size={20} className="text-brand-600" /> Share Image to WhatsApp</h3>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors"><X size={20} className="text-gray-500" /></button>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
+                <div className="p-5 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50">
+                    <h3 className="font-display font-semibold text-lg flex items-center gap-2 text-gray-900 dark:text-white"><Share2 size={20} className="text-brand-600" /> Share Image to WhatsApp</h3>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-full transition-colors"><X size={20} className="text-gray-500" /></button>
                 </div>
                 <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-6">
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <img src={imageBase64} alt="Preview" className="w-full sm:w-40 sm:h-40 object-cover rounded-xl border border-gray-200 shadow-sm" />
+                        <img src={imageBase64} alt="Preview" className="w-full sm:w-40 sm:h-40 object-cover rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm" />
                         <div className="flex-1 space-y-2">
-                            <label className="text-sm font-medium text-gray-700">Image Caption</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Image Caption</label>
                             <textarea className="input-field w-full resize-none" rows={5} value={message} onChange={e => setMessage(e.target.value)} placeholder="Write a message to accompany the image..." />
                         </div>
                     </div>
                     <div>
                         <div className="flex justify-between items-end mb-3">
-                            <label className="text-sm font-medium text-gray-700 font-display">Select Recipients ({selectedIds.size})</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 font-display">Select Recipients ({selectedIds.size})</label>
                             <button onClick={selectAll} className="text-xs text-brand-600 hover:underline">Select All</button>
                         </div>
-                        <div className="border border-gray-200 rounded-xl overflow-hidden max-h-64 overflow-y-auto bg-gray-50/50 p-2 space-y-1">
+                        <div className="border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-64 overflow-y-auto bg-gray-50/50 dark:bg-slate-700/30 p-2 space-y-1">
                             {loadingGuests ? <p className="text-sm text-center py-4 text-gray-400">Loading guests...</p> : guests.map(g => (
-                                <label key={g.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white border border-transparent hover:border-gray-100 hover:shadow-sm cursor-pointer transition-all">
+                                <label key={g.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 border border-transparent hover:border-gray-100 dark:hover:border-slate-600 hover:shadow-sm cursor-pointer transition-all">
                                     <input type="checkbox" checked={selectedIds.has(g.id)} onChange={() => toggleGuest(g.id)} className="accent-brand-600 w-4 h-4 flex-shrink-0" />
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-medium text-gray-900 truncate">{g.name}</p>
+                                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{g.name}</p>
                                         <p className="text-xs text-gray-400">{g.mobile}</p>
                                     </div>
                                 </label>
@@ -247,7 +247,7 @@ function ShareModal({ imageBase64, onClose }: { imageBase64: string, onClose: ()
                         </div>
                     </div>
                 </div>
-                <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                <div className="p-5 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-end gap-3">
                     <button onClick={onClose} className="btn-secondary">Cancel</button>
                     <button onClick={sendMessages} disabled={sending || selectedIds.size === 0 || !message.trim()} className="btn-primary flex items-center gap-2">
                         {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
@@ -354,8 +354,8 @@ function ImageTab({ groomName, setGroomName, brideName, setBrideName, weddingDat
             />
 
             {/* Style */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><span>✨</span> Style Instructions</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6">
+                <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><span>✨</span> Style Instructions</h2>
                 <p className="text-xs text-gray-400 mb-3">Describe the design style. Leave blank for a classic Indian wedding look.</p>
                 <textarea className="input-field w-full resize-none" rows={4}
                     placeholder={`e.g. "Rajasthani miniature art style with peacock motifs, deep red and gold, marigold borders"`}
@@ -363,7 +363,7 @@ function ImageTab({ groomName, setGroomName, brideName, setBrideName, weddingDat
                 <div className="mt-3 flex flex-wrap gap-2">
                     {['Traditional Indian', 'Rajasthani Floral', 'Modern Minimalist', 'Royal Gold', 'Pastel Watercolor'].map(tag => (
                         <button key={tag} onClick={() => setCustomPrompt(tag + ' style wedding invitation')}
-                            className="text-xs px-3 py-1 rounded-full border border-brand-200 text-brand-700 hover:bg-brand-50 transition-colors">{tag}</button>
+                            className="text-xs px-3 py-1 rounded-full border border-brand-200 dark:border-brand-800/50 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors">{tag}</button>
                     ))}
                 </div>
             </div>
@@ -394,11 +394,11 @@ function ImageTab({ groomName, setGroomName, brideName, setBrideName, weddingDat
             {error && <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3"><AlertCircle size={18} className="shrink-0 mt-0.5" /><p className="text-sm">{error}</p></div>}
 
             {imageUrl && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div className="p-5 border-b border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-green-50 rounded-lg text-green-600"><ImageIcon size={18} /></div>
-                            <div><p className="font-semibold text-gray-900">Invitation Ready!</p><p className="text-xs text-gray-400">Generated with {IMAGE_MODELS.find(m => m.id === selectedModel)?.label}</p></div>
+                            <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400"><ImageIcon size={18} /></div>
+                            <div><p className="font-semibold text-gray-900 dark:text-white">Invitation Ready!</p><p className="text-xs text-gray-400">Generated with {IMAGE_MODELS.find(m => m.id === selectedModel)?.label}</p></div>
                         </div>
                         <div className="flex flex-wrap gap-3">
                             <button onClick={downloadPng} className="btn-secondary flex items-center gap-2" title="Download PNG"><Download size={16} /></button>
@@ -408,7 +408,7 @@ function ImageTab({ groomName, setGroomName, brideName, setBrideName, weddingDat
                             </button>
                         </div>
                     </div>
-                    <div className="p-6 bg-gray-50 flex justify-center">
+                    <div className="p-6 bg-gray-50 dark:bg-slate-900/50 flex justify-center">
                         <img ref={imgRef} src={imageUrl} alt="Generated wedding invitation" className="max-h-[700px] rounded-xl shadow-xl object-contain hover:scale-[1.02] transition-transform duration-300" />
                     </div>
                 </div>
@@ -575,8 +575,8 @@ function VideoTab({ groomName, setGroomName, brideName, setBrideName, weddingDat
             />
 
             {/* Style */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><span>🎬</span> Video Style</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6">
+                <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><span>🎬</span> Video Style</h2>
                 <p className="text-xs text-gray-400 mb-3">Describe the video scene and mood. Leave blank for a cinematic romantic default.</p>
                 <textarea className="input-field w-full resize-none" rows={4}
                     placeholder={`e.g. "Slow-motion rose petals falling over a mandap decorated with marigolds, golden hour light, traditional flute music impression"`}
@@ -584,16 +584,16 @@ function VideoTab({ groomName, setGroomName, brideName, setBrideName, weddingDat
                 <div className="mt-3 flex flex-wrap gap-2">
                     {['Cinematic Romantic', 'Floral Garden', 'Royal Palace', 'Beach Sunset', 'Temple Ceremony'].map(tag => (
                         <button key={tag} onClick={() => setVideoPrompt(tag + ' style, slow-motion cinematic wedding invitation video')}
-                            className="text-xs px-3 py-1 rounded-full border border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors">{tag}</button>
+                            className="text-xs px-3 py-1 rounded-full border border-purple-200 dark:border-purple-800/50 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors">{tag}</button>
                     ))}
                 </div>
 
                 <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Video Duration</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Video Duration</label>
                     <div className="flex gap-3">
                         {(['5', '10'] as const).map(d => (
                             <button key={d} onClick={() => setDuration(d)}
-                                className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-all ${duration === d ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                                className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-all ${duration === d ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-slate-500'}`}>
                                 {d} seconds
                             </button>
                         ))}
@@ -602,9 +602,9 @@ function VideoTab({ groomName, setGroomName, brideName, setBrideName, weddingDat
             </div>
 
             {/* Info box */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl p-4 flex gap-3">
                 <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-800">Video generation typically takes <strong>1–3 minutes</strong>. Please leave this page open while it processes.</p>
+                <p className="text-sm text-amber-800 dark:text-amber-400">Video generation typically takes <strong>1–3 minutes</strong>. Please leave this page open while it processes.</p>
             </div>
 
             <button onClick={generate} disabled={loading} className="w-full py-4 text-lg flex items-center justify-center gap-3 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed rounded-xl font-semibold text-white transition-all"
@@ -619,17 +619,17 @@ function VideoTab({ groomName, setGroomName, brideName, setBrideName, weddingDat
             {error && <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3"><AlertCircle size={18} className="shrink-0 mt-0.5" /><p className="text-sm">{error}</p></div>}
 
             {videoUrl && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div className="p-5 border-b border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-purple-50 rounded-lg text-purple-600"><Video size={18} /></div>
-                            <div><p className="font-semibold text-gray-900">Video Invitation Ready!</p><p className="text-xs text-gray-400">Generated with {VIDEO_MODELS.find(m => m.id === selectedModel)?.label}</p></div>
+                            <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg text-purple-600 dark:text-purple-400"><Video size={18} /></div>
+                            <div><p className="font-semibold text-gray-900 dark:text-white">Video Invitation Ready!</p><p className="text-xs text-gray-400">Generated with {VIDEO_MODELS.find(m => m.id === selectedModel)?.label}</p></div>
                         </div>
                         <button onClick={downloadVideo} className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-white text-sm" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
                             <Download size={16} /> Download MP4
                         </button>
                     </div>
-                    <div className="p-6 bg-gray-50 flex justify-center">
+                    <div className="p-6 bg-gray-50 dark:bg-slate-900/50 flex justify-center">
                         <video src={videoUrl} controls autoPlay loop className="max-h-[600px] rounded-xl shadow-xl" />
                     </div>
                 </div>
@@ -649,24 +649,24 @@ export default function AI() {
     return (
         <div className="animate-fade-in max-w-4xl mx-auto">
             <header className="mb-8">
-                <h1 className="text-3xl font-bold font-display text-gray-900 flex items-center gap-3">
+                <h1 className="text-3xl font-bold font-display text-gray-900 dark:text-white flex items-center gap-3">
                     <Sparkles className="text-brand-600" size={30} />
                     AI Invitation Studio
                 </h1>
-                <p className="text-gray-500 mt-1">Generate stunning wedding invitations — image cards or cinematic videos — using AI</p>
+                <p className="text-gray-500 dark:text-gray-400 mt-1">Generate stunning wedding invitations — image cards or cinematic videos — using AI</p>
             </header>
 
             {/* Tab Switcher */}
-            <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+            <div className="flex gap-2 mb-6 bg-gray-100 dark:bg-slate-700/50 p-1 rounded-xl w-fit">
                 <button
                     onClick={() => setActiveTab('image')}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'image' ? 'bg-white shadow text-brand-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'image' ? 'bg-white dark:bg-slate-700 shadow text-brand-700 dark:text-brand-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                 >
                     <ImageIcon size={16} /> Image Invitation
                 </button>
                 <button
                     onClick={() => setActiveTab('video')}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'video' ? 'bg-white shadow text-purple-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'video' ? 'bg-white dark:bg-slate-700 shadow text-purple-700 dark:text-purple-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                 >
                     <Film size={16} /> Video Invitation
                 </button>

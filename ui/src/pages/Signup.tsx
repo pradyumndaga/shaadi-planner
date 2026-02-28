@@ -46,7 +46,7 @@ export default function Signup() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-white">
+        <div className="min-h-screen flex flex-col md:flex-row bg-white dark:bg-slate-900">
             {/* Form Side */}
             <div className="flex-1 flex items-center justify-center p-8 order-2 md:order-1">
                 <div className="w-full max-w-sm animate-fade-in">
@@ -54,8 +54,8 @@ export default function Signup() {
                         <h1 className="text-3xl font-display font-bold text-brand-600">ShaadiDesk</h1>
                     </div>
 
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h2>
-                    <p className="text-gray-500 mb-8">Start organizing your wedding today</p>
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create Account</h2>
+                    <p className="text-gray-500 dark:text-gray-400 mb-8">Start organizing your wedding today</p>
 
                     {error && (
                         <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm mb-6 border border-red-100 animate-shake">
@@ -65,7 +65,7 @@ export default function Signup() {
 
                     <form onSubmit={handleSignup} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Indian Mobile Number</label>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Indian Mobile Number</label>
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                                     <Phone size={18} />
@@ -74,7 +74,7 @@ export default function Signup() {
                                     type="tel"
                                     required
                                     placeholder="e.g. 9876543210"
-                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all outline-none"
+                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-800 dark:text-white dark:placeholder-gray-500 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all outline-none"
                                     value={mobile}
                                     onChange={(e) => setMobile(e.target.value)}
                                 />
@@ -82,7 +82,7 @@ export default function Signup() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Password</label>
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                                     <Lock size={18} />
@@ -91,7 +91,7 @@ export default function Signup() {
                                     type="password"
                                     required
                                     placeholder="Min. 6 characters"
-                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all outline-none"
+                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-800 dark:text-white dark:placeholder-gray-500 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all outline-none"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
@@ -99,7 +99,7 @@ export default function Signup() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Confirm Password</label>
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                                     <Lock size={18} />
@@ -108,7 +108,7 @@ export default function Signup() {
                                     type="password"
                                     required
                                     placeholder="Re-enter password"
-                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all outline-none"
+                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-800 dark:text-white dark:placeholder-gray-500 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all outline-none"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                 />
@@ -131,7 +131,7 @@ export default function Signup() {
                         </button>
                     </form>
 
-                    <p className="mt-8 text-center text-gray-600">
+                    <p className="mt-8 text-center text-gray-600 dark:text-gray-400">
                         Already have an account?{' '}
                         <Link to="/login" className="text-brand-600 font-bold hover:underline">
                             Sign In

@@ -6,7 +6,7 @@
 
 @layer base {
   body {
-    @apply bg-background text-secondary font-sans antialiased;
+    @apply bg-background dark:bg-slate-900 text-secondary dark:text-slate-100 font-sans antialiased transition-colors duration-200;
   }
 
   h1,
@@ -15,7 +15,7 @@
   h4,
   h5,
   h6 {
-    @apply font-display tracking-tight text-gray-900;
+    @apply font-display tracking-tight text-gray-900 dark:text-white transition-colors duration-200;
   }
 }
 
@@ -25,19 +25,19 @@
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-all duration-200;
+    @apply inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-all duration-200;
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6 overscroll-none hover:shadow-md transition-shadow duration-300;
+    @apply bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 overscroll-none hover:shadow-md transition-shadow duration-300;
   }
 
   .glass-panel {
-    @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl;
+    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-lg border border-white/20 dark:border-slate-700/50 shadow-xl;
   }
 
   .input-field {
-    @apply block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-brand-600 sm:text-sm sm:leading-6 transition-all;
+    @apply block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 dark:text-white bg-white dark:bg-slate-900 ring-1 ring-inset ring-gray-300 dark:ring-slate-700 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-brand-600 sm:text-sm sm:leading-6 transition-all;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -60,5 +60,15 @@
   .badge-radiant-female {
     @apply text-pink-800 border-pink-200 shadow-sm border;
     background: radial-gradient(circle at center, #fce7f3 0%, #fff1f2 100%);
+  }
+
+  .dark .badge-radiant-male {
+    @apply text-blue-200 border-blue-900/50;
+    background: radial-gradient(circle at center, #1e3a5f 0%, #1e293b 100%);
+  }
+
+  .dark .badge-radiant-female {
+    @apply text-pink-200 border-pink-900/50;
+    background: radial-gradient(circle at center, #4a1230 0%, #1e293b 100%);
   }
 }
